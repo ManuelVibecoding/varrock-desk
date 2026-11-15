@@ -1,0 +1,32 @@
+name: Oscilaciones
+
+on:
+  schedule:
+    - cron: '37 6 * * *'   # todos los días, de madrugada en Chile
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oscilaciones
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Analizar 90 días de precios
+        run: node scan.js
+      - name: Guardar resultados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add oscilaciones.json
+          git diff --cached --quiet || git commit -m "Actualizar oscilaciones"
+          git push
