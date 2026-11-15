@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Varrock Desk: flipping en el Grand Exchange</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230F1B2D'/%3E%3Crect x='7' y='9' width='18' height='3.5' fill='%23D6A64A'/%3E%3Crect x='7' y='19.5' width='11' height='3.5' fill='%23EEF2F7'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Newsreader:opsz,wght@6..72,400..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --ink:#101B2D; --ink2:#4E5B6E; --ink3:#8590A0;
+  --line:#DCE1E7; --line2:#EDF0F3; --bar:#0F1B2D; --bar-ink:#EEF2F7; --bar-ink2:#9FB0C6; --bar-field:#1B2A42;
+  --brass:#9A6E14; --brass-soft:#F5ECD6; --up:#0A7A55; --up-soft:#E1F2EA; --down:#BF3A30; --down-soft:#F8E5E2;
+  --buy:#2F6FA8; --focus:#2B6CB0;
+  --sans:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C131E; --surface:#131C2B; --ink:#E8ECF2; --ink2:#A7B2C2; --ink3:#6E7B8E;
+    --line:#243044; --line2:#1A2434; --bar:#080E17; --bar-field:#162236;
+    --brass:#D6A64A; --brass-soft:#2D2512; --up:#45C08F; --up-soft:#11301F; --down:#EE7268; --down-soft:#3A1B19;
+    --buy:#6FA8DC; --focus:#7FB2E8;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.num{font-stretch:86%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.up{color:var(--up)} .down{color:var(--down)} .muted{color:var(--ink3)}
+.wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+
+/* Barra superior */
+.bar{background:var(--bar);color:var(--bar-ink)}
+.bar .wrap{display:flex;align-items:center;gap:20px;min-height:58px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{display:flex;align-items:center;gap:10px;font:600 21px/1 var(--serif);letter-spacing:-.01em;margin-right:8px}
+.brand svg{flex:none}
+.search{flex:1 1 220px;max-width:380px}
+.search input{width:100%;height:36px;border:1px solid transparent;border-radius:5px;background:var(--bar-field);color:var(--bar-ink);padding:0 12px}
+.search input::placeholder{color:var(--bar-ink2)}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--bar-ink2)}
+.dot{width:8px;height:8px;border-radius:50%;background:#45C08F;flex:none}
+.dot.stale{background:#D6A64A} .dot.off{background:#EE7268}
+.dot.ping{animation:ping .9s ease-out 1}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(69,192,143,.7)}100%{box-shadow:0 0 0 9px rgba(69,192,143,0)}}
+@media (prefers-reduced-motion: reduce){.dot.ping{animation:none}.drawer{transition:none!important}}
+
+/* Pestanas */
+.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-top:6px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none}
+@media (max-width:640px){.tabs{gap:20px}}
+.tabs button{background:none;border:0;padding:16px 0 12px;font-weight:500;font-size:15.5px;color:var(--ink2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs .count{font-weight:400;color:var(--ink3);margin-left:6px}
+main{padding:22px 0 56px}
+[hidden]{display:none!important}
+
+/* Lectura de la ultima actualizacion */
+.brief{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 28px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:4px;padding:16px 20px;margin-bottom:22px}
+.brief .when{font-size:13.5px;color:var(--ink2)}
+.brief h2{font:500 21px/1.25 var(--serif);margin:2px 0 4px;letter-spacing:-.005em}
+.brief p{margin:0;color:var(--ink2);max-width:74ch}
+.btn{height:36px;padding:0 14px;border-radius:5px;border:1px solid var(--ink);background:var(--ink);color:var(--surface);font-weight:500;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+
+/* Filtros */
+.filters{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink2)}
+.field input[type=text],.field select{height:36px;border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:0 10px;min-width:118px;color:var(--ink)}
+.field input[type=text]{width:128px}
+.check{display:flex;align-items:center;gap:8px;height:36px;font-size:14px;color:var(--ink)}
+.check input{width:16px;height:16px;accent-color:var(--ink)}
+
+/* Tabla */
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1010px}
+th,td{padding:0 12px;height:42px;text-align:right;border-bottom:1px solid var(--line2)}
+th:first-child,td:first-child{text-align:left}
+thead th{position:sticky;top:0;background:var(--surface);font-weight:500;font-size:13px;color:var(--ink2);border-bottom:1px solid var(--line);height:40px;white-space:nowrap}
+thead button{background:none;border:0;padding:6px 0;font-weight:500;color:inherit}
+thead th[aria-sort] button{color:var(--ink)}
+thead th[aria-sort="descending"] button::after{content:"";display:inline-block;margin-left:6px;border:4px solid transparent;border-top-color:currentColor;transform:translateY(3px)}
+thead th[aria-sort="ascending"] button::after{content:"";display:inline-block;margin-left:6px;border:4px solid transparent;border-bottom-color:currentColor;transform:translateY(-2px)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--line2)}
+tbody tr:last-child td{border-bottom:0}
+.item{display:flex;align-items:center;gap:10px;min-width:0}
+.item img{width:28px;height:28px;object-fit:contain;flex:none;image-rendering:pixelated}
+.item .nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{display:inline-block;font-size:12px;line-height:18px;padding:0 7px;border-radius:9px;background:var(--brass-soft);color:var(--brass);font-weight:500;white-space:nowrap}
+.tag.warn{background:var(--line2);color:var(--ink2)}
+.tablenote{font-size:13px;color:var(--ink2);margin:10px 2px 0;max-width:110ch}
+.empty{padding:44px 24px;text-align:center;color:var(--ink2)}
+.empty strong{display:block;color:var(--ink);font-weight:600;margin-bottom:4px}
+
+/* Actualizaciones */
+.news{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start}
+.newslist{background:var(--surface);border:1px solid var(--line);border-radius:6px;max-height:calc(100vh - 150px);overflow:auto;position:sticky;top:12px}
+.newslist button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line2);padding:12px 16px;border-left:3px solid transparent}
+.newslist button:last-child{border-bottom:0}
+.newslist button:hover{background:var(--line2)}
+.newslist button[aria-current="true"]{border-left-color:var(--brass);background:var(--line2)}
+.newslist .meta{font-size:12.5px;color:var(--ink2);display:flex;justify-content:space-between;gap:8px}
+.newslist .ttl{font:500 16px/1.25 var(--serif);margin:3px 0 3px;display:block}
+.newslist .cnt{font-size:12.5px;color:var(--ink3)}
+.newslist .cnt.has{color:var(--brass);font-weight:500}
+.story{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 26px;min-width:0}
+.story .meta{font-size:13.5px;color:var(--ink2)}
+.story h2{font:500 30px/1.15 var(--serif);letter-spacing:-.012em;margin:6px 0 10px;max-width:28ch}
+.story .lede{color:var(--ink2);max-width:72ch;margin:0 0 6px}
+.story a{color:var(--ink);text-underline-offset:3px}
+.verdict{margin:22px 0 6px;padding-top:18px;border-top:1px solid var(--line)}
+.verdict .say{font:500 20px/1.3 var(--serif);margin:0 0 12px;max-width:52ch}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line2);max-width:560px}
+.split i{display:block;height:100%}
+.split .a{background:var(--brass)} .split .p{background:var(--ink)}
+.splitkey{display:flex;gap:22px;font-size:13px;color:var(--ink2);margin-top:8px;flex-wrap:wrap}
+.splitkey b{font-weight:600;color:var(--ink)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.rows{margin-top:18px}
+.rowhead,.arow{display:grid;grid-template-columns:minmax(180px,1.5fr) 92px 112px 92px 210px;gap:14px;align-items:center}
+.rowhead{font-size:13px;color:var(--ink2);padding:0 4px 8px;border-bottom:1px solid var(--line)}
+.rowhead span:not(:first-child){text-align:right}
+.rowhead span:last-child{text-align:left}
+.arow{width:100%;background:none;border:0;border-bottom:1px solid var(--line2);padding:12px 4px;text-align:left}
+.arow:hover{background:var(--line2)}
+.arow .r{text-align:right;font-weight:500}
+.arow .read{grid-column:1/-1;font-size:13.5px;color:var(--ink2);margin-top:-4px;padding-left:38px;max-width:86ch}
+.chip{display:inline-block;font-size:12px;line-height:19px;padding:0 8px;border-radius:10px;font-weight:500;margin-top:2px}
+.k-ant,.k-cont{background:var(--brass-soft);color:var(--brass)}
+.k-rev{background:var(--down-soft);color:var(--down)}
+.k-late{background:var(--ink);color:var(--surface)}
+.k-flat,.k-na{background:var(--line2);color:var(--ink2)}
+.spark{display:block;width:210px;height:44px}
+.method{font-size:13px;color:var(--ink2);margin-top:18px;max-width:92ch}
+
+/* Panel de objeto */
+.scrim{position:fixed;inset:0;background:rgba(8,14,23,.42);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--surface);border-left:1px solid var(--line);z-index:21;overflow:auto;padding:22px 24px 40px;transform:translateX(100%);transition:transform .2s ease-out}
+.drawer.open{transform:none}
+.dhead{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.dhead img{width:40px;height:40px;object-fit:contain;image-rendering:pixelated;flex:none}
+.dhead h2{font:500 26px/1.15 var(--serif);margin:0;letter-spacing:-.01em}
+.dhead .sub{font-size:13.5px;color:var(--ink2);margin-top:3px}
+.dhead .x{margin-left:auto;background:none;border:1px solid var(--line);border-radius:5px;height:34px;padding:0 12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:18px 0}
+.stats div{background:var(--surface);padding:10px 12px}
+.stats dt{font-size:12.5px;color:var(--ink2)}
+.stats dd{margin:2px 0 0;font-weight:600;font-size:17px}
+.stats small{display:block;font-weight:400;font-size:12px;color:var(--ink3)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg button{background:none;border:0;border-right:1px solid var(--line);padding:5px 12px;font-size:13.5px;color:var(--ink2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.charthead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.key{font-size:13px;color:var(--ink2);display:flex;gap:16px}
+.key i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px}
+.chart{display:block;width:100%;height:auto;margin-top:10px;touch-action:none}
+.readout{font-size:13px;color:var(--ink2);min-height:20px;margin-top:4px}
+.dsec{margin-top:24px}
+.dsec h3{font-size:15px;font-weight:600;margin:0 0 10px}
+.calc{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:flex-end}
+.calc output{display:block;font-weight:600;font-size:17px}
+.calc .lbl{font-size:13px;color:var(--ink2)}
+.mentions button{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line2);padding:10px 0}
+.mentions .ttl{font:500 16px/1.25 var(--serif);display:block}
+.mentions .meta{font-size:12.5px;color:var(--ink2)}
+
+/* Modos, Mi mesa */
+.modes{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;margin-bottom:16px}
+.modehint{margin:0;font-size:13.5px;color:var(--ink2);max-width:88ch;flex:1 1 320px}
+.wdot{width:7px;height:7px;border-radius:50%;background:var(--brass);flex:none}
+.mesa .blk + .blk{margin-top:38px}
+.mesa h2{font:500 23px/1.2 var(--serif);margin:0;letter-spacing:-.005em}
+.mesahead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 12px}
+.mesa .sub{font-size:13.5px;color:var(--ink2);margin:4px 0 0;max-width:80ch}
+.plain tbody tr{cursor:default}
+.plain tbody tr:hover{background:none}
+.plain .item[data-item]{cursor:pointer}
+.mini{height:30px;padding:0 10px;border-radius:5px;border:1px solid var(--line);background:transparent;font-size:13.5px;white-space:nowrap}
+.mini.solid{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.sellin{width:112px;height:30px;border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:0 8px;text-align:right}
+td.act{white-space:nowrap}
+td.act > *{margin-left:6px}
+.sum{display:flex;gap:10px 36px;flex-wrap:wrap}
+.sum span{display:block;font-size:13px;color:var(--ink2)}
+.sum b{font-size:19px;font-weight:600}
+.dactions{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
+
+/* Mi equipo */
+.gear .grp + .grp{margin-top:34px}
+.gear h2{font:500 23px/1.2 var(--serif);margin:0 0 4px;letter-spacing:-.005em}
+.gear .grphead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.gear .grphead p{margin:0;font-size:13.5px;color:var(--ink2);max-width:80ch}
+.gear table{min-width:960px}
+.gear tr.isset td{background:var(--line2)}
+.gear tr.isset .nm{font-weight:600}
+.gear td.sub .item{padding-left:18px}
+.rng{display:inline-flex;flex-direction:column;gap:3px;width:150px;vertical-align:middle}
+.rng .trk{position:relative;height:6px;border-radius:3px;background:var(--line)}
+.rng .mk{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--ink);border:2px solid var(--surface)}
+.rng .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink3)}
+.tgt{width:104px;height:30px;border:1px solid var(--line);border-radius:5px;background:var(--surface);padding:0 8px;text-align:right}
+.tgt:placeholder-shown{color:var(--ink3)}
+.k-hit{background:var(--up-soft);color:var(--up)}
+.k-near{background:var(--brass-soft);color:var(--brass)}
+.k-low{background:var(--up-soft);color:var(--up)}
+.k-high{background:var(--down-soft);color:var(--down)}
+.setline{margin:10px 2px 0;font-size:14px;color:var(--ink2);max-width:100ch}
+.setline b{color:var(--ink);font-weight:600}
+.gearsum{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);border-radius:4px;padding:14px 20px;margin-bottom:26px}
+.gearsum p{margin:0;color:var(--ink2);max-width:100ch}
+.gearsum p + p{margin-top:6px}
+.gearsum b{color:var(--ink);font-weight:600}
+.gearsum button{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-weight:500}
+
+/* Oscilaciones */
+.osc table{min-width:1040px}
+.osc thead th{white-space:normal;line-height:1.25;vertical-align:bottom;padding-top:8px;padding-bottom:8px}
+.chip{white-space:nowrap}
+.oschead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap;margin-bottom:14px}
+.oschead p{margin:0;font-size:13.5px;color:var(--ink2);max-width:92ch}
+.rng .bd{position:absolute;top:-3px;width:2px;height:12px;margin-left:-1px;background:var(--brass)}
+.swingtxt{margin:0;color:var(--ink2);max-width:66ch}
+.swingtxt b{color:var(--ink);font-weight:600}
+.swingtxt + .swingtxt{margin-top:8px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px 24px;flex-wrap:wrap}
+.foot .acts{display:flex;gap:8px}
+
+/* Sin conexion */
+.offline{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--down);border-radius:4px;padding:22px 24px;max-width:760px}
+.offline h2{font:500 24px/1.2 var(--serif);margin:0 0 8px}
+.offline p{margin:0 0 10px;color:var(--ink2);max-width:66ch}
+footer{border-top:1px solid var(--line);padding:18px 0 28px;font-size:13px;color:var(--ink2)}
+footer a{color:inherit}
+
+@media (max-width:980px){
+  .news{grid-template-columns:1fr}
+  .newslist{position:static;max-height:300px}
+  .rowhead{display:none}
+  .arow{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 14px}
+  .arow .vol{display:none}
+  .arow .sp{grid-column:1/-1}
+  .arow .read{padding-left:0;margin-top:0}
+  .spark{width:100%}
+}
+@media (max-width:640px){
+  .wrap{padding:0 14px}
+  .status span.long{display:none}
+  .brief{grid-template-columns:1fr}
+  .story{padding:18px 16px}
+  .story h2{font-size:25px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field input[type=text],.field select{min-width:0;width:100%}
+  .filters .field{flex:1 1 44%}
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="8" width="26" height="4" fill="#D6A64A"/><rect x="3" y="20" width="16" height="4" fill="#EEF2F7"/></svg>
+      Varrock Desk
+    </div>
+    <label class="search"><input id="q" type="search" placeholder="Buscar un objeto" aria-label="Buscar un objeto" autocomplete="off"></label>
+    <div class="status" aria-live="polite"><i class="dot stale" id="dot"></i><span id="statusText">Conectando</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="mercado" aria-selected="true">Mercado</button>
+    <button role="tab" data-tab="osc" aria-selected="false">Oscilaciones<span class="count" id="oscCount"></span></button>
+    <button role="tab" data-tab="equipo" aria-selected="false">Mi equipo<span class="count" id="gearCount"></span></button>
+    <button role="tab" data-tab="actualizaciones" aria-selected="false">Actualizaciones<span class="count" id="updCount"></span></button>
+    <button role="tab" data-tab="mesa" aria-selected="false">Mi mesa<span class="count" id="posCount"></span></button>
+  </nav>
+
+  <main>
+    <section id="offline" class="offline" hidden>
+      <h2>No hay conexión con los precios del Grand Exchange</h2>
+      <p>La página lee los precios en vivo desde la API del OSRS Wiki y no logró conectarse. Si la estás viendo dentro de una vista previa incrustada, ábrela directamente en tu navegador: los visores incrustados bloquean las conexiones externas.</p>
+      <p>Si ya estás en el navegador, revisa tu conexión y vuelve a intentar.</p>
+      <button class="btn" id="retry">Reintentar conexión</button>
+    </section>
+
+    <section id="tab-mercado">
+      <div id="brief"></div>
+      <div class="modes">
+        <div class="seg" role="group" aria-label="Qué buscar">
+          <button data-mode="flip">Flips</button><button data-mode="dump">Caídas bruscas</button><button data-mode="watch">Mi lista</button>
+        </div>
+        <p class="modehint" id="modeHint"></p>
+      </div>
+      <div class="filters" id="filters">
+        <label class="field">Capital disponible<input type="text" id="fCapital" inputmode="decimal" aria-describedby="capHint"></label>
+        <label class="field" data-only="flip">ROI mínimo<select id="fRoi"><option value="0">Cualquiera</option><option value="0.5">0,5%</option><option value="1">1%</option><option value="2">2%</option><option value="5">5%</option><option value="10">10%</option></select></label>
+        <label class="field">Precio por unidad desde<select id="fMinP"><option value="0">Cualquiera</option><option value="1000">1 K</option><option value="10000">10 K</option><option value="100000">100 K</option><option value="1000000">1 M</option><option value="10000000">10 M</option></select></label>
+        <label class="field">Volumen diario mínimo<select id="fVol"><option value="0">Cualquiera</option><option value="100">100</option><option value="1000">1.000</option><option value="10000">10.000</option><option value="100000">100.000</option></select></label>
+        <label class="field">Precio visto hace menos de<select id="fAge"><option value="15">15 minutos</option><option value="60">1 hora</option><option value="360">6 horas</option><option value="1440">24 horas</option></select></label>
+        <label class="field">Mundo<select id="fMem"><option value="all">Todos</option><option value="p2p">Solo miembros</option><option value="f2p">Solo F2P</option></select></label>
+        <label class="check" data-only="flip"><input type="checkbox" id="fConf">Margen confirmado en 1 h</label>
+        <label class="check"><input type="checkbox" id="fNews">Solo objetos en noticias</label>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="empty" id="tEmpty" hidden></div>
+      </div>
+      <p class="tablenote" id="tNote"></p>
+    </section>
+
+    <section id="tab-osc" class="osc" hidden>
+      <div class="oschead">
+        <p>Objetos caros que suben y bajan dentro de un rango. El piso es el precio bajo el cual estuvo el 20% del tiempo en los últimos 90 días y el techo, el precio sobre el cual estuvo otro 20%. La estrategia es comprar con oferta cerca del piso y vender en el techo. Se descartan los objetos que vienen cayendo, los que casi no se transan y aquellos cuyo rango no cubre el impuesto.</p>
+      </div>
+      <div class="filters">
+        <label class="field">Precio desde<select id="oMin"><option value="1000000">1 M</option><option value="10000000">10 M</option><option value="50000000">50 M</option><option value="100000000">100 M</option></select></label>
+        <label class="field">Ordenar por<select id="oSort"><option value="score">Mejor historial</option><option value="near">Más cerca del piso</option><option value="net">Mayor ganancia por unidad</option></select></label>
+        <label class="check"><input type="checkbox" id="oBuy">Solo en zona de compra o cerca del piso</label>
+      </div>
+      <div class="tablebox plain"><table><thead><tr><th scope="col">Objeto</th><th scope="col">Si ofertas hoy</th><th scope="col">Piso</th><th scope="col">Techo</th><th scope="col">Ganancia neta por unidad</th><th scope="col">ROI neto</th><th scope="col">Vueltas en 90 días</th><th scope="col">Días por vuelta</th><th scope="col">Peor caída</th><th scope="col">Unidades al día</th><th scope="col">Por vuelta con tu capital</th></tr></thead><tbody id="oscBody"></tbody></table><div class="empty" id="oscEmpty" hidden></div></div>
+      <p class="tablenote" id="oscNote"></p>
+    </section>
+
+    <section id="tab-equipo" class="gear" hidden>
+      <div id="gearSum"></div>
+      <div id="gearBody"></div>
+      <p class="tablenote" id="gearNote"></p>
+    </section>
+
+    <section id="tab-mesa" class="mesa" hidden>
+      <div class="blk">
+        <div class="mesahead">
+          <div><h2>Plan para tus slots</h2><p class="sub">Reparte tu capital entre los mejores flips del momento, con un máximo de 35% por objeto. Usa los mismos filtros de la pestaña Mercado.</p></div>
+          <label class="field">Slots del Grand Exchange<select id="fSlots"><option value="8">8, miembros</option><option value="3">3, F2P</option></select></label>
+        </div>
+        <div class="tablebox plain"><table><thead><tr><th scope="col">Objeto</th><th scope="col">Cantidad</th><th scope="col">Comprar a</th><th scope="col">Vender a</th><th scope="col">Inversión</th><th scope="col">Ganancia esperada</th><th scope="col"></th></tr></thead><tbody id="planBody"></tbody></table><div class="empty" id="planEmpty" hidden></div></div>
+        <p class="tablenote" id="planNote"></p>
+      </div>
+      <div class="blk">
+        <div class="mesahead"><div><h2>Posiciones abiertas</h2><p class="sub">Lo que ya compraste. El contador muestra cuándo se renueva tu límite de compra de 4 horas para ese objeto.</p></div></div>
+        <div class="tablebox plain"><table><thead><tr><th scope="col">Objeto</th><th scope="col">Cantidad</th><th scope="col">Comprado a</th><th scope="col">Venta actual</th><th scope="col">Si vendes ahora</th><th scope="col">Límite se renueva</th><th scope="col">Registrar la venta</th></tr></thead><tbody id="posBody"></tbody></table><div class="empty" id="posEmpty" hidden></div></div>
+      </div>
+      <div class="blk">
+        <div class="mesahead"><div><h2>Historial</h2></div><div class="sum" id="histSum"></div></div>
+        <div class="tablebox plain"><table><thead><tr><th scope="col">Objeto</th><th scope="col">Cantidad</th><th scope="col">Compra</th><th scope="col">Venta</th><th scope="col">Ganancia neta</th><th scope="col">Cerrado</th></tr></thead><tbody id="histBody"></tbody></table><div class="empty" id="histEmpty" hidden></div></div>
+        <p class="tablenote"><button class="mini" data-clearhist id="clearHist" hidden>Borrar historial</button></p>
+      </div>
+    </section>
+
+    <section id="tab-actualizaciones" hidden>
+      <div class="news">
+        <div class="newslist" id="newslist"></div>
+        <article class="story" id="story"></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot"><span>Precios y noticias: <a href="https://oldschool.runescape.wiki/w/RuneScape:Real-time_Prices" target="_blank" rel="noopener">OSRS Wiki, precios en tiempo real</a>. Los márgenes ya descuentan el impuesto del Grand Exchange. Sitio independiente, sin afiliación con Jagex.</span>
+    <span class="acts"><button class="mini" data-export>Exportar mis datos</button><button class="mini" data-import>Importar datos</button><input type="file" id="impFile" accept="application/json,.json" hidden></span></footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Detalle del objeto" hidden></aside>
+
+<script src="swing.js"></script>
+<script>
+(() => {
+'use strict';
+const API = 'https://prices.runescape.wiki/api/v1/osrs';
+const WIKI = 'https://oldschool.runescape.wiki/api.php';
+const HOUR = 36e5, DAY = 864e5;
+const $ = (s, r = document) => r.querySelector(s);
+
+/* ---------- formato ---------- */
+const nf = new Intl.NumberFormat('es-CL');
+const df = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
+const dfShort = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short' });
+const tf = new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const gp = n => (n == null || !isFinite(n)) ? '–' : nf.format(Math.round(n));
+const dec = (v, d) => v.toLocaleString('es-CL', { maximumFractionDigits: d });
+function short(n) {
+  if (n == null || !isFinite(n)) return '–';
+  const a = Math.abs(n);
+  if (a >= 1e9) return dec(n / 1e9, 2) + ' B';
+  if (a >= 1e6) return dec(n / 1e6, a >= 1e8 ? 0 : 1) + ' M';
+  if (a >= 1e4) return dec(n / 1e3, a >= 1e5 ? 0 : 1) + ' K';
+  return gp(n);
+}
+const pct = (x, d = 1) => (x == null || !isFinite(x)) ? '–' : (x > 0 ? '+' : '') + (x * 100).toLocaleString('es-CL', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+const sign = x => x > 0 ? 'up' : x < 0 ? 'down' : '';
+function ago(t) {
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return 'hace ' + Math.floor(s) + ' s';
+  if (s < 3600) return 'hace ' + Math.floor(s / 60) + ' min';
+  if (s < 86400) return 'hace ' + Math.floor(s / 3600) + ' h';
+  return 'hace ' + Math.floor(s / 86400) + ' d';
+}
+function parseGp(str) {
+  const m = String(str).toLowerCase().replace(/\s/g, '').match(/^([\d.,]+)([kmb]?)$/);
+  if (!m) return null;
+  const mult = { '': 1, k: 1e3, m: 1e6, b: 1e9 }[m[2]];
+  const n = m[2] ? parseFloat(m[1].replace(',', '.')) : parseInt(m[1].replace(/[.,]/g, ''), 10);
+  return isFinite(n) && n > 0 ? Math.round(n * mult) : null;
+}
+const median = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+const std = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+const iconUrl = it => it && it.icon ? 'https://oldschool.runescape.wiki/images/' + encodeURIComponent(it.icon.replace(/ /g, '_')) : '';
+const img = (it, cls = '') => `<img ${cls} src="${esc(iconUrl(it))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+
+/* ---------- estado ---------- */
+const store = {
+  get() { try { return JSON.parse(localStorage.getItem('vd.cfg') || '{}'); } catch (e) { return {}; } },
+  set(v) { try { localStorage.setItem('vd.cfg', JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+};
+const ls = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+};
+const cfg = Object.assign({ capital: 1e9, tax: 2, minRoi: 1, minVol: 100, maxAge: 60, members: 'all', confirmed: true, newsOnly: false, mode: 'flip', slots: 8, minPrice: 1e5, oscMin: 1e6, oscSort: 'score', oscOnlyBuy: false }, store.get());
+const S = {
+  items: new Map(), byName: new Map(), wordIdx: new Map(),
+  latest: {}, h1: {}, d24: {}, has24: false, priceTs: 0, online: false,
+  updates: [], updState: 'loading', newsByItem: new Map(), series: new Map(),
+  q: '', sort: { key: 'est', dir: -1 }, tab: 'mercado', selUpd: null, selItem: null, step: '1h',
+  watch: new Set(ls.get('vd.watch', [])), targets: ls.get('vd.targets', {}), pos: ls.get('vd.pos', []), hist: ls.get('vd.hist', []), plan: []
+};
+
+const TAX_EXEMPT = new Set(['old school bond', 'chisel', 'gardening trowel', 'glassblowing pipe', 'hammer', 'needle', 'pestle and mortar', 'rake', 'saw', 'secateurs', 'seed dibber', 'shears', 'spade', 'watering can (0)']);
+const taxOf = (it, price) => TAX_EXEMPT.has(it.name.toLowerCase()) ? 0 : Math.min(5e6, Math.floor(price * cfg.tax / 100));
+
+async function getJSON(url) {
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+/* ---------- precios ---------- */
+async function loadMapping() {
+  const m = await getJSON(API + '/mapping');
+  for (const it of m) {
+    S.items.set(it.id, it);
+    const low = it.name.toLowerCase();
+    S.byName.set(low, it.id);
+    if (low.includes(' ')) {
+      const first = low.match(/^[a-z0-9']+/);
+      if (first) { const k = first[0]; (S.wordIdx.get(k) || S.wordIdx.set(k, []).get(k)).push({ low, id: it.id }); }
+    }
+  }
+}
+async function loadLatest() {
+  const j = await getJSON(API + '/latest');
+  S.latest = j.data || {};
+  S.priceTs = Date.now();
+  S.online = true;
+}
+async function loadVolumes() {
+  const [a, b] = await Promise.allSettled([getJSON(API + '/1h'), getJSON(API + '/24h')]);
+  if (a.status === 'fulfilled' && a.value && a.value.data) S.h1 = a.value.data;
+  if (b.status === 'fulfilled' && b.value && b.value.data) { S.d24 = b.value.data; S.has24 = true; }
+}
+function vol(id) {
+  const d = S.has24 ? S.d24[id] : null;
+  if (d) { const h = d.highPriceVolume || 0, l = d.lowPriceVolume || 0; return { total: h + l, side: Math.min(h, l) }; }
+  const x = S.h1[id];
+  if (x) { const h = (x.highPriceVolume || 0) * 24, l = (x.lowPriceVolume || 0) * 24; return { total: h + l, side: Math.min(h, l) }; }
+  return { total: 0, side: 0 };
+}
+function quote(id, dump) {
+  const it = S.items.get(id), L = S.latest[id];
+  if (!it || !L || !L.high || !L.low) return null;
+  const d = S.d24[id], has = d && d.avgHighPrice && d.avgLowPrice, v = vol(id);
+  let buy = L.low, sell = L.high, age = Date.now() - Math.min(L.highTime || 0, L.lowTime || 0) * 1000;
+  let dev = has ? ((L.high + L.low) / (d.avgHighPrice + d.avgLowPrice)) - 1 : null;
+  if (dump) {
+    if (!has) return null;
+    sell = d.avgHighPrice; dev = L.low / d.avgLowPrice - 1; age = Date.now() - (L.lowTime || 0) * 1000;
+  }
+  const tax = taxOf(it, sell), margin = sell - buy - tax;
+  const h = S.h1[id];
+  let confirmed = false;
+  if (h && h.avgHighPrice && h.avgLowPrice) confirmed = (h.avgHighPrice - h.avgLowPrice - taxOf(it, h.avgHighPrice)) > 0;
+  const liq = Math.max(1, Math.floor(v.side / 6 * 0.15));
+  const qty = Math.max(0, Math.min(it.limit || Infinity, Math.floor(cfg.capital / buy), liq));
+  return { id, it, name: it.name, buy, sell, tax, margin, roi: margin / buy, dev, vol: v.total, limit: it.limit || 0, liq, qty, est: margin * qty, age, confirmed };
+}
+const midNow = id => { const L = S.latest[id]; return L && L.high && L.low ? (L.high + L.low) / 2 : (L && (L.high || L.low)) || null; };
+
+/* ---------- tabla de mercado ---------- */
+function cols() {
+  const dump = cfg.mode === 'dump' && !S.q;
+  return [
+    ['name', 'Objeto'], ['buy', dump ? 'Se vende a' : 'Comprar a'], ['sell', dump ? 'Promedio 24 h' : 'Vender a'],
+    ['margin', dump ? 'Margen si rebota' : 'Margen neto'], ['roi', 'ROI'], ['dev', dump ? 'Caída vs. 24 h' : 'vs. 24 h'],
+    ['vol', 'Volumen diario'], ['limit', 'Límite 4 h'], ['est', dump ? 'Ganancia si rebota' : 'Ganancia estimada 4 h'], ['age', 'Precio visto']
+  ];
+}
+function renderHead() {
+  $('#thead').innerHTML = cols().map(([k, label]) => {
+    const on = S.sort.key === k;
+    return `<th scope="col"${on ? ` aria-sort="${S.sort.dir < 0 ? 'descending' : 'ascending'}"` : ''}><button data-sort="${k}">${label}</button></th>`;
+  }).join('');
+}
+function marketRows(mode, q) {
+  q = (q || '').trim().toLowerCase();
+  const out = [], maxAge = cfg.maxAge * 6e4, dump = mode === 'dump' && !q;
+  const ids = (mode === 'watch' && !q) ? S.watch : S.items.keys();
+  for (const id of ids) {
+    const r = quote(id, dump);
+    if (!r) continue;
+    if (q) { if (!r.name.toLowerCase().includes(q)) continue; }
+    else if (mode !== 'watch') {
+      if (r.margin <= 0 || r.buy > cfg.capital || r.buy < cfg.minPrice || r.age > maxAge || r.vol < cfg.minVol) continue;
+      if (cfg.members === 'p2p' && !r.it.members) continue;
+      if (cfg.members === 'f2p' && r.it.members) continue;
+      if (cfg.newsOnly && !S.newsByItem.has(id)) continue;
+      if (dump) { if (r.dev == null || r.dev > -0.03) continue; }
+      else { if (r.roi * 100 < cfg.minRoi) continue; if (cfg.confirmed && !r.confirmed) continue; }
+    }
+    out.push(r);
+  }
+  return out;
+}
+const HINT = {
+  flip: 'Compra al precio de venta rápida y vende al de compra rápida. La ganancia ya descuenta el impuesto y se limita a lo que el mercado puede absorber.',
+  dump: 'Objetos que se están vendiendo al menos 3% bajo su promedio de 24 horas. La ganancia supone que el precio vuelve a ese promedio. Si el objeto aparece en noticias, la caída puede ser un cambio real y no un rebote.',
+  watch: 'Los objetos que sigues, sin filtros. Abre cualquier objeto y pulsa Seguir para agregarlo.'
+};
+function renderMarket() {
+  if (!S.online) return;
+  const mode = cfg.mode, q = S.q;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+  $('#modeHint').textContent = HINT[mode];
+  $('#filters').hidden = mode === 'watch';
+  document.querySelectorAll('[data-only]').forEach(el => el.hidden = el.dataset.only !== mode);
+  const rows = marketRows(mode, q), { key, dir } = S.sort;
+  rows.sort(key === 'name' ? (a, b) => dir * a.name.localeCompare(b.name) : (a, b) => dir * ((a[key] || 0) - (b[key] || 0)));
+  const show = rows.slice(0, 150);
+  $('#tbody').innerHTML = show.map(r => `<tr data-item="${r.id}" tabindex="0">
+    <td><div class="item">${img(r.it)}<span class="nm">${esc(r.name)}</span>${S.watch.has(r.id) ? '<i class="wdot" title="En tu lista"></i>' : ''}${S.newsByItem.has(r.id) ? '<span class="tag">en noticias</span>' : ''}${!r.confirmed && (q || mode === 'watch') ? '<span class="tag warn">sin confirmar</span>' : ''}</div></td>
+    <td class="num">${gp(r.buy)}</td><td class="num">${gp(r.sell)}</td>
+    <td class="num ${sign(r.margin)}">${gp(r.margin)}</td><td class="num ${sign(r.roi)}">${pct(r.roi)}</td>
+    <td class="num ${sign(r.dev)}">${pct(r.dev)}</td>
+    <td class="num">${short(r.vol)}</td><td class="num">${r.limit ? gp(r.limit) : '–'}</td>
+    <td class="num ${sign(r.est)}"><strong>${short(r.est)}</strong></td><td class="num muted">${ago(Date.now() - r.age)}</td></tr>`).join('');
+  const empty = $('#tEmpty');
+  empty.hidden = rows.length > 0;
+  if (!rows.length) empty.innerHTML = q
+    ? `<strong>Ningún objeto se llama así</strong>Revisa el nombre en inglés, tal como aparece en el juego.`
+    : mode === 'watch' ? `<strong>Todavía no sigues ningún objeto</strong>Abre un objeto desde Flips o desde una noticia y pulsa Seguir.`
+    : mode === 'dump' ? (S.has24 ? `<strong>Nada está cayendo con fuerza ahora</strong>Amplía la antigüedad del precio o baja el volumen mínimo.` : `<strong>Falta el promedio de 24 horas</strong>La API no lo entregó. Se reintenta en unos minutos.`)
+    : `<strong>Ningún objeto cumple los filtros</strong>Baja el ROI, el precio por unidad o el volumen mínimo, o amplía la antigüedad del precio.`;
+  $('#tNote').textContent = rows.length
+    ? `${nf.format(show.length)} de ${nf.format(rows.length)} objetos${q ? ' encontrados; la búsqueda ignora los filtros' : ''}. La cantidad supone comprar hasta el menor entre el límite de 4 horas, tu capital y el 15% de lo que el lado más lento del mercado mueve en 4 horas.${S.has24 ? '' : ' El volumen diario se proyecta desde la última hora.'}`
+    : '';
+}
+
+/* ---------- oscilaciones ---------- */
+S.osc = null; S.oscById = new Map(); S.oscState = 'loading'; S.swLocal = new Map();
+async function loadOsc() {
+  try {
+    const j = await getJSON('oscilaciones.json?t=' + Math.floor(Date.now() / 6e5));
+    if (!j || !Array.isArray(j.items) || !j.generatedAt) throw new Error('sin datos');
+    S.osc = j; S.oscById = new Map(j.items.map(x => [x.id, x])); S.oscState = 'ready';
+  } catch (e) { if (!S.osc) S.oscState = 'missing'; }
+}
+// Oscilación calculada aquí mismo con la serie de 6 horas ya descargada; si no, la del cálculo nocturno.
+function swingOf(id) {
+  const hit = S.series.get(id + ':6h'), it = S.items.get(id);
+  if (hit && window.Swing && it) {
+    const c = S.swLocal.get(id);
+    if (c && c.at === hit.at) return c.s;
+    const sw = window.Swing.analyze(hit.pts, { tax: price => taxOf(it, price) });
+    S.swLocal.set(id, { at: hit.at, s: sw });
+    if (sw) return sw;
+  }
+  return S.oscById.get(id) || null;
+}
+function zoneOf(s, id) {
+  const L = S.latest[id] || {};
+  if (!s || !L.low) return null;
+  if (L.low <= s.floor) return 'buy';
+  if (L.high && L.high >= s.ceil) return 'sell';
+  if (L.low <= s.floor * 1.03) return 'near';
+  return 'mid';
+}
+const ZONE = { buy: ['Zona de compra', 'k-hit'], near: ['Cerca del piso', 'k-low'], sell: ['Zona de venta', 'k-near'] };
+const oscQty = (s, id) => { const it = S.items.get(id), L = S.latest[id] || {}, px = L.low || s.floor; return Math.max(0, Math.min(it && it.limit || Infinity, Math.floor(cfg.capital * 0.35 / px))); };
+function renderOsc() {
+  if (!S.online) return;
+  const body = $('#oscBody'), empty = $('#oscEmpty'), note = $('#oscNote');
+  if (S.oscState !== 'ready') {
+    body.innerHTML = ''; empty.hidden = false; note.textContent = '';
+    empty.innerHTML = S.oscState === 'loading' ? 'Cargando el análisis de oscilaciones'
+      : location.protocol === 'file:' ? '<strong>Esta pestaña usa el cálculo nocturno publicado</strong>Ábrela desde la versión en GitHub Pages. En el archivo local igual puedes ver la oscilación de cualquier objeto en su panel de detalle.'
+      : '<strong>Todavía no hay resultados</strong>El cálculo corre cada noche. Para lanzarlo ahora, abre la pestaña Actions del repositorio y ejecuta Oscilaciones.';
+    return;
+  }
+  const rows = [];
+  for (const base of S.osc.items) {
+    if (!S.items.has(base.id)) continue;
+    const s = swingOf(base.id) || base;
+    if (!s.candidate || s.floor < cfg.oscMin || s.floor > cfg.capital) continue;
+    const z = zoneOf(s, base.id);
+    if (cfg.oscOnlyBuy && z !== 'buy' && z !== 'near') continue;
+    const L = S.latest[base.id] || {}, qty = oscQty(s, base.id);
+    rows.push({ id: base.id, s, z, now: L.low, dist: L.low ? L.low / s.floor - 1 : 9, qty });
+  }
+  const by = { score: (a, b) => b.s.score - a.s.score, near: (a, b) => a.dist - b.dist, net: (a, b) => b.s.net - a.s.net }[cfg.oscSort] || ((a, b) => b.s.score - a.s.score);
+  rows.sort(by);
+  body.innerHTML = rows.map(r => {
+    const it = S.items.get(r.id), s = r.s, zc = ZONE[r.z];
+    return `<tr><td><div class="item" data-item="${r.id}">${img(it)}<span><span class="nm">${esc(it.name)}</span>${zc ? `<br><span class="chip ${zc[1]}">${zc[0]}</span>` : ''}</span>${S.newsByItem.has(r.id) ? '<span class="tag">en noticias</span>' : ''}</div></td>
+      <td class="num"><strong>${short(r.now)}</strong><br><span class="muted">${r.now ? (r.dist >= 0 ? pct(r.dist) + ' sobre el piso' : pct(-r.dist).replace('+', '') + ' bajo el piso') : ''}</span></td>
+      <td class="num">${short(s.floor)}</td><td class="num">${short(s.ceil)}</td>
+      <td class="num up"><strong>${short(s.net)}</strong></td><td class="num">${pct(s.netRoi)}</td>
+      <td class="num">${s.trips} de ${s.entries}</td><td class="num">${s.medianDays != null ? dec(s.medianDays, 0) : '–'}</td>
+      <td class="num down">${pct(s.worstDrop)}</td><td class="num">${dec(s.dailyUnits, s.dailyUnits < 10 ? 1 : 0)}</td>
+      <td class="num">${r.qty ? `<strong>${short(r.qty * s.net)}</strong><br><span class="muted">${gp(r.qty)} ${r.qty === 1 ? 'unidad' : 'unidades'}</span>` : '–'}</td></tr>`;
+  }).join('');
+  const nb = rows.filter(r => r.z === 'buy').length;
+  $('#oscCount').textContent = nb ? nb : '';
+  empty.hidden = rows.length > 0;
+  if (!rows.length) empty.innerHTML = cfg.oscOnlyBuy ? '<strong>Ningún objeto está cerca de su piso ahora</strong>Desmarca el filtro para ver todos los que oscilan.' : '<strong>Ningún objeto cumple los filtros</strong>Baja el precio mínimo o sube tu capital en la pestaña Mercado.';
+  note.textContent = `Calculado ${ago(Date.parse(S.osc.generatedAt))} con 90 días de precios: ${nf.format(S.osc.analyzed)} objetos analizados, ${nf.format(S.osc.candidates)} oscilan lo suficiente. "Vueltas" cuenta las veces que el precio fue del piso al techo; "Peor caída" es cuánto siguió bajando después de tocar el piso antes de rebotar. "Por vuelta con tu capital" usa hasta 35% de tu capital por objeto. Que haya oscilado no garantiza que siga haciéndolo: una actualización puede romper el rango.`;
+}
+function swingHtml(id, s) {
+  if (!s) return '<p class="swingtxt">No hay suficiente historial para medir su oscilación.</p>';
+  const z = zoneOf(s, id), L = S.latest[id] || {};
+  const why = s.candidate ? 'Oscila lo suficiente para comprar en el piso y vender en el techo.'
+    : s.trend30 <= -0.12 ? `Viene cayendo ${pct(-s.trend30).replace('+', '')} en el último mes: más que oscilar, está bajando.`
+    : s.netRoi < 0.03 ? 'Su rango es demasiado estrecho para cubrir el impuesto con holgura.'
+    : s.trips < 2 ? 'En 90 días casi no ha ido del piso al techo.'
+    : 'Se transa muy poco para salir a tiempo.';
+  const now = z === 'buy' ? 'Hoy está en zona de compra.' : z === 'near' ? 'Hoy está a menos de 3% del piso.' : z === 'sell' ? 'Hoy está en zona de venta.' : L.low ? `Hoy está ${pct(L.low / s.floor - 1).replace('+', '')} sobre el piso.` : '';
+  return `<p class="swingtxt">Piso <b class="num">${gp(s.floor)}</b> y techo <b class="num">${gp(s.ceil)}</b>. Comprar en el piso y vender en el techo deja <b class="num">${gp(s.net)}</b> netos por unidad (${pct(s.netRoi)}).</p>
+    <p class="swingtxt">En 90 días completó ${s.trips} de ${s.entries} vueltas${s.medianDays != null ? `, en ${dec(s.medianDays, 0)} días cada una` : ''}. Después de tocar el piso, en el peor caso siguió bajando ${pct(s.worstDrop).replace('-', '')}. Se transan ${dec(s.dailyUnits, 1)} unidades al día.</p>
+    <p class="swingtxt"><b>${why}</b> ${now}</p>`;
+}
+
+/* ---------- mi equipo ---------- */
+const GEAR = [
+  { g: 'Oathplate', set: ['Oathplate armour set'], pieces: [['Oathplate helm'], ['Oathplate chest'], ['Oathplate legs']] },
+  { g: 'Torva', set: ['Torva armour set'], pieces: [['Torva full helm', 'Torva full helm (damaged)'], ['Torva platebody', 'Torva platebody (damaged)'], ['Torva platelegs', 'Torva platelegs (damaged)']] },
+  { g: 'Ancestral', set: ['Ancestral robes set'], pieces: [['Ancestral hat'], ['Ancestral robe top'], ['Ancestral robe bottom']] },
+  { g: 'Inquisitor', set: ["Inquisitor's armour set"], pieces: [["Inquisitor's great helm"], ["Inquisitor's hauberk"], ["Inquisitor's plateskirt"]] },
+  { g: 'Armas', items: [['Soulreaper axe'], ['Zaryte crossbow'], ['Noxious halberd'], ['Voidwaker'], ['Eye of ayak (uncharged)', 'Eye of ayak'], ['Nightmare staff'], ['Harmonised orb'], ['Harmonised nightmare staff'], ['Tormented synapse']] },
+  { g: 'Amuletos y brazalete', items: [['Amulet of rancour'], ['Amulet of torture'], ['Necklace of anguish'], ['Tormented bracelet']] },
+  { g: 'Escudo, defensor y botas', items: [['Arcane spirit shield'], ['Avernic defender hilt', 'Avernic defender'], ['Avernic treads']] }
+];
+const allIds = names => names.map(n => S.byName.get(n.toLowerCase())).filter(id => id != null);
+function gearIds() {
+  const out = [], missing = [];
+  for (const grp of GEAR) for (const names of [grp.set || null, ...(grp.pieces || []), ...(grp.items || [])]) {
+    if (!names) continue;
+    const ids = allIds(names);
+    if (ids.length) out.push(...ids); else missing.push(names[0]);
+  }
+  return { ids: [...new Set(out)], missing };
+}
+function gearStat(id) {
+  const hit = S.series.get(id + ':6h');
+  if (!hit) return null;
+  const pts = hit.pts.filter(p => p.mid != null), now = Date.now();
+  if (pts.length < 4) return null;
+  const cur = midNow(id) || pts[pts.length - 1].mid;
+  const at = t => { let v = null; for (const p of pts) { if (p.t <= t) v = p.mid; else break; } return v; };
+  const d1 = at(now - DAY), d7 = at(now - 7 * DAY);
+  const win = pts.filter(p => p.t >= now - 90 * DAY).map(p => p.mid);
+  const lo = Math.min(...win, cur), hi = Math.max(...win, cur);
+  return { cur, d1: d1 ? cur / d1 - 1 : null, d7: d7 ? cur / d7 - 1 : null, lo, hi,
+    pos: hi > lo ? (cur - lo) / (hi - lo) : 0.5, pctl: win.filter(v => v <= cur).length / win.length };
+}
+let gearLoading = false;
+async function loadGear() {
+  if (gearLoading) return;
+  gearLoading = true;
+  try {
+    const todo = gearIds().ids.filter(id => { const h = S.series.get(id + ':6h'); return !h || Date.now() - h.at > 30 * 6e4; });
+    for (let i = 0; i < todo.length; i += 4) {
+      await Promise.all(todo.slice(i, i + 4).map(id => series(id, '6h').catch(() => null)));
+      if (S.tab === 'equipo') renderGear();
+    }
+  } finally { gearLoading = false; }
+}
+function gearStatus(id) {
+  const L = S.latest[id] || {}, tgt = S.targets[id], st = gearStat(id);
+  if (tgt && L.high && L.high <= tgt) return ['Bajo tu objetivo', 'k-hit'];
+  if (tgt && L.low && L.low <= tgt) return ['Alcanzable con oferta', 'k-near'];
+  const sw = swingOf(id), z = sw && sw.candidate ? zoneOf(sw, id) : null;
+  if (z && ZONE[z]) return ZONE[z];
+  if (st && st.pctl <= 0.15) return ['Cerca del mínimo de 90 días', 'k-low'];
+  if (st && st.pctl >= 0.85) return ['Cerca del máximo de 90 días', 'k-high'];
+  return null;
+}
+function bands(id, st) {
+  const sw = swingOf(id);
+  if (!sw || !(st.hi > st.lo)) return '';
+  const at = v => Math.min(100, Math.max(0, (v - st.lo) / (st.hi - st.lo) * 100)).toFixed(1);
+  return `<i class="bd" style="left:${at(sw.floor)}%" title="Piso ${gp(sw.floor)}"></i><i class="bd" style="left:${at(sw.ceil)}%" title="Techo ${gp(sw.ceil)}"></i>`;
+}
+function gearRow(id, kind) {
+  const it = S.items.get(id), L = S.latest[id] || {}, st = gearStat(id), stt = gearStatus(id), tgt = S.targets[id];
+  const rng = st ? `<span class="rng" title="Mínimo ${gp(st.lo)}, máximo ${gp(st.hi)}"><span class="trk">${bands(id, st)}<i class="mk" style="left:${(st.pos * 100).toFixed(1)}%"></i></span><span class="ends num"><span>${short(st.lo)}</span><span>${short(st.hi)}</span></span></span>` : '<span class="muted">Cargando</span>';
+  return `<tr class="${kind === 'set' ? 'isset' : ''}"><td class="${kind === 'sub' ? 'sub' : ''}"><div class="item" data-item="${id}">${img(it)}<span><span class="nm">${esc(it.name)}</span>${stt ? `<br><span class="chip ${stt[1]}">${stt[0]}</span>` : ''}</span>${S.newsByItem.has(id) ? '<span class="tag">en noticias</span>' : ''}</div></td>
+    <td class="num"><strong>${gp(L.high)}</strong></td><td class="num">${gp(L.low)}</td>
+    <td class="num ${st ? sign(st.d1) : ''}">${st ? pct(st.d1) : '–'}</td><td class="num ${st ? sign(st.d7) : ''}">${st ? pct(st.d7) : '–'}</td>
+    <td>${rng}</td>
+    <td><input class="tgt num" type="text" inputmode="decimal" placeholder="Sin objetivo" aria-label="Precio objetivo de ${esc(it.name)}" data-tgt="${id}" value="${tgt ? short(tgt) : ''}"></td></tr>`;
+}
+function setLine(grp) {
+  const setId = allIds(grp.set)[0], pcs = grp.pieces.map(n => allIds(n)[0]);
+  if (setId == null || pcs.some(x => x == null)) return '';
+  const L = id => S.latest[id] || {}, sit = S.items.get(setId);
+  if (!L(setId).high || !L(setId).low || pcs.some(id => !L(id).high || !L(id).low)) return '';
+  const setBuy = L(setId).high, pcsBuy = pcs.reduce((a, id) => a + L(id).high, 0), diff = pcsBuy - setBuy;
+  const which = Math.abs(diff) < setBuy * 0.002 ? 'Comprar ya, el set y las piezas cuestan prácticamente lo mismo.'
+    : diff > 0 ? `Comprar ya, el set sale <b>${short(diff)}</b> más barato que las piezas por separado.`
+    : `Comprar ya, las piezas por separado salen <b>${short(-diff)}</b> más baratas que el set.`;
+  const combine = L(setId).high - taxOf(sit, L(setId).high) - pcs.reduce((a, id) => a + L(id).low, 0);
+  const split = pcs.reduce((a, id) => a + L(id).high - taxOf(S.items.get(id), L(id).high), 0) - L(setId).low;
+  const arb = combine > 0 && combine >= split ? `Flip: comprar las piezas con oferta, armar el set en el Grand Exchange y venderlo deja <b class="up">${short(combine)}</b> después de impuesto.`
+    : split > 0 ? `Flip: comprar el set con oferta, desarmarlo y vender las piezas deja <b class="up">${short(split)}</b> después de impuesto.`
+    : 'Ahora no hay margen entre el set y las piezas después de impuesto.';
+  return `<p class="setline">${which} ${arb}</p>`;
+}
+function renderGear() {
+  if (!S.online) return;
+  const head = '<thead><tr><th scope="col">Objeto</th><th scope="col">Comprar ya</th><th scope="col">Si ofertas</th><th scope="col">24 h</th><th scope="col">7 días</th><th scope="col" style="text-align:left">Últimos 90 días</th><th scope="col" style="text-align:left">Tu objetivo</th></tr></thead>';
+  const { ids, missing } = gearIds();
+  $('#gearCount').textContent = '';
+  $('#gearBody').innerHTML = GEAR.map(grp => {
+    let rows = '';
+    if (grp.set) {
+      allIds(grp.set).forEach(id => rows += gearRow(id, 'set'));
+      grp.pieces.forEach(n => allIds(n).forEach(id => rows += gearRow(id, 'sub')));
+    } else grp.items.forEach(n => allIds(n).forEach(id => rows += gearRow(id, 'item')));
+    if (!rows) return '';
+    return `<div class="grp"><div class="grphead"><h2>${esc(grp.g)}</h2>${grp.set ? '<p>El set y cada pieza por separado.</p>' : ''}</div>
+      <div class="tablebox plain"><table>${head}<tbody>${rows}</tbody></table></div>${grp.set ? setLine(grp) : ''}</div>`;
+  }).join('');
+  const hit = ids.filter(id => { const L = S.latest[id] || {}, t = S.targets[id]; return t && ((L.high && L.high <= t) || (L.low && L.low <= t)); });
+  const inZone = ids.filter(id => { const sw = swingOf(id), z = sw && sw.candidate ? zoneOf(sw, id) : null; return z === 'buy' || z === 'near'; });
+  const low = ids.filter(id => { const s2 = gearStatus(id); return s2 && s2[0] === 'Cerca del mínimo de 90 días'; });
+  const names = list => list.map(id => `<button data-item="${id}">${esc(S.items.get(id).name)}</button>`).join(', ');
+  $('#gearCount').textContent = hit.length ? hit.length : '';
+  $('#gearSum').innerHTML = `<div class="gearsum">
+    <p>${hit.length ? `<b>Bajo tu objetivo o alcanzable con oferta:</b> ${names(hit)}.` : 'Ningún objeto está bajo tu precio objetivo. Escribe un objetivo en cualquier fila, por ejemplo 450m o 1.2b, y la página te lo marca cuando el precio llegue.'}</p>
+    <p>${inZone.length ? `<b>En zona de compra según su oscilación:</b> ${names(inZone)}.` : 'Ninguno está en zona de compra según su oscilación.'}${low.length ? ` <b>Cerca de su mínimo de 90 días:</b> ${names(low)}.` : ''}</p></div>`;
+  $('#gearNote').textContent = `"Comprar ya" es el último precio pagado al comprar al instante; "Si ofertas" es el último precio al que alguien vendió al instante, lo más bajo que puedes esperar pagar con una oferta. Los cambios y el rango usan el precio medio cada 6 horas; las dos marcas doradas de la barra son el piso y el techo de su oscilación. Los objetivos se guardan en este navegador.${missing.length ? ' No se encontraron en el Grand Exchange: ' + missing.join(', ') + '.' : ''}`;
+}
+
+/* ---------- mi mesa ---------- */
+function savePos() {
+  ls.set('vd.pos', S.pos); ls.set('vd.hist', S.hist);
+  $('#posCount').textContent = S.pos.length ? S.pos.length : '';
+}
+function addPos(id, qty, buy) {
+  if (!(qty > 0) || !(buy > 0)) return false;
+  S.pos.push({ id, qty, buy, t: Date.now() }); savePos(); return true;
+}
+function buildPlan() {
+  const cap = cfg.capital * 0.35, held = new Set(S.pos.map(p => p.id)), n = Math.max(0, cfg.slots - S.pos.length);
+  const q0 = r => Math.min(r.limit || Infinity, r.liq, Math.floor(cap / r.buy));
+  const c = marketRows('flip', '').filter(r => !held.has(r.id) && q0(r) * r.margin > 0).sort((a, b) => q0(b) * b.margin - q0(a) * a.margin);
+  let R = cfg.capital;
+  const plan = [];
+  for (const r of c) {
+    if (plan.length >= n) break;
+    const qty = Math.min(r.limit || Infinity, r.liq, Math.floor(Math.min(R, cap) / r.buy));
+    if (qty < 1) continue;
+    plan.push({ r, qty, cost: qty * r.buy, profit: qty * r.margin });
+    R -= qty * r.buy;
+  }
+  return plan;
+}
+const nameCell = it => `<td><div class="item" data-item="${it.id}">${img(it)}<span class="nm">${esc(it.name)}</span>${S.newsByItem.has(it.id) ? '<span class="tag">en noticias</span>' : ''}</div></td>`;
+function renderPlan() {
+  const plan = S.plan = buildPlan(), free = Math.max(0, cfg.slots - S.pos.length);
+  $('#planBody').innerHTML = plan.map((p, i) => `<tr>${nameCell(p.r.it)}
+    <td class="num">${gp(p.qty)}</td><td class="num">${gp(p.r.buy)}</td><td class="num">${gp(p.r.sell)}</td>
+    <td class="num">${short(p.cost)}</td><td class="num ${sign(p.profit)}"><strong>${short(p.profit)}</strong></td>
+    <td class="act"><button class="mini solid" data-plan="${i}">Registrar compra</button></td></tr>`).join('');
+  const e = $('#planEmpty');
+  e.hidden = plan.length > 0;
+  if (!plan.length) e.innerHTML = free === 0 ? '<strong>Todos tus slots están ocupados</strong>Registra una venta para liberar uno.' : '<strong>Ningún flip cumple tus filtros</strong>Ajusta el ROI, el volumen o el capital en la pestaña Mercado.';
+  const cost = plan.reduce((s, p) => s + p.cost, 0), prof = plan.reduce((s, p) => s + p.profit, 0);
+  $('#planNote').textContent = plan.length ? `${plan.length} de ${free} slots libres, ${short(cost)} de ${short(cfg.capital)} invertidos. Ganancia esperada por ciclo: ${short(prof)} (${pct(prof / cost).slice(1)} sobre lo invertido), si ambas órdenes se llenan a los precios actuales.` : '';
+}
+const leftText = t => { const ms = t - Date.now(); if (ms <= 0) return 'Disponible'; const m = Math.ceil(ms / 6e4); return (m >= 60 ? Math.floor(m / 60) + ' h ' : '') + (m % 60) + ' min'; };
+function renderPositions() {
+  $('#posBody').innerHTML = S.pos.map((p, i) => {
+    const it = S.items.get(p.id), L = S.latest[p.id] || {};
+    if (!it) return '';
+    const sell = L.high || 0, net = sell ? p.qty * (sell - p.buy - taxOf(it, sell)) : null;
+    return `<tr>${nameCell(it)}<td class="num">${gp(p.qty)}</td><td class="num">${gp(p.buy)}</td><td class="num">${sell ? gp(sell) : '–'}</td>
+      <td class="num ${sign(net)}"><strong>${net == null ? '–' : short(net)}</strong></td>
+      <td class="num" data-reset="${p.t + 4 * HOUR}">${leftText(p.t + 4 * HOUR)}</td>
+      <td class="act"><input class="sellin num" type="text" inputmode="numeric" aria-label="Precio de venta de ${esc(it.name)}" value="${sell || ''}" data-sellin="${i}"><button class="mini solid" data-sell="${i}">Registrar venta</button><button class="mini" data-del="${i}">Quitar</button></td></tr>`;
+  }).join('');
+  const e = $('#posEmpty');
+  e.hidden = S.pos.length > 0;
+  if (!S.pos.length) e.innerHTML = '<strong>No tienes posiciones abiertas</strong>Registra una compra desde el plan o desde el panel de cualquier objeto.';
+}
+function renderHistory() {
+  const h = S.hist, total = h.reduce((s, x) => s + x.profit, 0), wins = h.filter(x => x.profit > 0).length;
+  $('#histSum').innerHTML = h.length ? `<div><span>Ganancia realizada</span><b class="num ${sign(total)}">${gp(total)}</b></div><div><span>Flips cerrados</span><b class="num">${h.length}</b></div><div><span>Con ganancia</span><b class="num">${Math.round(wins / h.length * 100)}%</b></div>` : '';
+  $('#histBody').innerHTML = h.slice(0, 50).map(x => {
+    const it = S.items.get(x.id);
+    return it ? `<tr>${nameCell(it)}<td class="num">${gp(x.qty)}</td><td class="num">${gp(x.buy)}</td><td class="num">${gp(x.sell)}</td><td class="num ${sign(x.profit)}"><strong>${gp(x.profit)}</strong></td><td class="num muted">${dfShort.format(x.tc)} ${tf.format(x.tc)}</td></tr>` : '';
+  }).join('');
+  $('#histEmpty').hidden = h.length > 0;
+  if (!h.length) $('#histEmpty').innerHTML = '<strong>Aún no cierras ningún flip</strong>Cuando registres una venta, la ganancia neta queda aquí.';
+  $('#clearHist').hidden = !h.length;
+}
+function renderMesa() { renderPlan(); renderPositions(); renderHistory(); }
+
+/* ---------- actualizaciones ---------- */
+const CAT = { game: 'Actualización del juego', future: 'Próximo contenido', community: 'Comunidad', devblog: 'Blog de desarrollo', bts: 'Detrás de escena', website: 'Sitio web', technical: 'Técnico', events: 'Eventos', competitions: 'Concursos', support: 'Soporte', mobile: 'Móvil', shop: 'Tienda' };
+const MONTHS = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
+const wikiUrl = p => WIKI + '?' + Object.entries(Object.assign({ format: 'json', origin: '*' }, p)).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+
+function cleanWiki(w) {
+  let s = w;
+  for (let i = 0; i < 6; i++) s = s.replace(/\{\{[^{}]*\}\}/g, '');
+  return s.replace(/\{\|[\s\S]*?\|\}/g, '')
+    .replace(/\[\[(?:File|Image|Category):[^\]]*\]\]/gi, '')
+    .replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1').replace(/\[\[([^\]]*)\]\]/g, '$1')
+    .replace(/\[https?:\S+\s([^\]]*)\]/g, '$1').replace(/\[https?:\S+\]/g, '')
+    .replace(/<[^>]+>/g, '').replace(/'{2,}/g, '').replace(/^=+.*=+\s*$/gm, '').replace(/^[*#:;]+\s*/gm, '');
+}
+function parseUpdate(title, created, wikitext) {
+  const u = { title: title.replace(/^Update:/, ''), page: title, created, t0: created, cat: '', excerpt: '', ids: [], linked: new Set(), an: null };
+  const tpl = wikitext.match(/\{\{\s*Update\s*\|([^}]*)\}\}/i);
+  if (tpl) {
+    const p = {};
+    tpl[1].split('|').forEach(kv => { const i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i).trim().toLowerCase()] = kv.slice(i + 1).trim(); });
+    u.cat = (p.category || '').toLowerCase();
+    const dm = (p.date || '').match(/(\d{1,2})\s+([A-Za-z]+)/), y = parseInt(p.year, 10);
+    if (dm && y && MONTHS[dm[2].toLowerCase()] != null) {
+      const t = Date.UTC(y, MONTHS[dm[2].toLowerCase()], +dm[1], 11, 0);
+      if (!created || Math.abs(created - t) > 36 * HOUR) u.t0 = t;
+    }
+  }
+  const counts = new Map();
+  const bump = id => counts.set(id, (counts.get(id) || 0) + 1);
+  const linkRe = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g;
+  let m;
+  while ((m = linkRe.exec(wikitext))) {
+    const id = S.byName.get(m[1].replace(/_/g, ' ').trim().toLowerCase());
+    if (id != null) { bump(id); u.linked.add(id); }
+  }
+  const text = cleanWiki(wikitext), low = text.toLowerCase(), wordRe = /[a-z0-9']+/g;
+  while ((m = wordRe.exec(low))) {
+    const cands = S.wordIdx.get(m[0]);
+    if (!cands) continue;
+    for (const c of cands) {
+      if (low.startsWith(c.low, m.index) && !/[a-z0-9]/.test(low[m.index + c.low.length] || '')) bump(c.id);
+    }
+  }
+  u.ids = [...counts.keys()];
+  const para = text.split(/\n+/).map(x => x.trim()).find(x => x.length > 70 && !/^[|!{}]/.test(x));
+  if (para) u.excerpt = para.length > 260 ? para.slice(0, 257).replace(/\s+\S*$/, '') + '…' : para;
+  return u;
+}
+async function loadUpdates() {
+  let pages = [];
+  try {
+    const si = await getJSON(wikiUrl({ action: 'query', meta: 'siteinfo', siprop: 'namespaces' }));
+    const ns = Object.values(si.query.namespaces).find(n => (n['*'] || n.name) === 'Update');
+    if (ns) {
+      const rc = await getJSON(wikiUrl({ action: 'query', list: 'recentchanges', rcnamespace: ns.id, rctype: 'new', rclimit: 40, rcprop: 'title|timestamp' }));
+      pages = rc.query.recentchanges.map(r => ({ title: r.title, created: Date.parse(r.timestamp) }));
+    }
+  } catch (e) { /* se intenta la categoria */ }
+  if (pages.length < 5) {
+    try {
+      const cm = await getJSON(wikiUrl({ action: 'query', list: 'categorymembers', cmtitle: 'Category:Updates', cmsort: 'timestamp', cmdir: 'desc', cmlimit: 40, cmprop: 'title|timestamp' }));
+      const seen = new Set(pages.map(p => p.title));
+      for (const r of cm.query.categorymembers) if (!seen.has(r.title) && /^Update:/.test(r.title)) pages.push({ title: r.title, created: Date.parse(r.timestamp) });
+    } catch (e) { /* se sigue con lo que haya */ }
+  }
+  if (!pages.length) throw new Error('sin noticias');
+  const created = new Map(pages.map(p => [p.title, p.created]));
+  const texts = new Map();
+  const titles = pages.map(p => p.title);
+  for (let i = 0; i < titles.length; i += 10) {
+    let cont = {}, guard = 0;
+    do {
+      const j = await getJSON(wikiUrl(Object.assign({ action: 'query', prop: 'revisions', rvprop: 'content', rvslots: 'main', formatversion: 2, titles: titles.slice(i, i + 10).join('|') }, cont)));
+      for (const pg of (j.query && j.query.pages) || []) {
+        const c = pg.revisions && pg.revisions[0] && pg.revisions[0].slots && pg.revisions[0].slots.main && pg.revisions[0].slots.main.content;
+        if (c) texts.set(pg.title, c);
+      }
+      cont = j.continue || null;
+    } while (cont && ++guard < 6);
+  }
+  const prev = new Map(S.updates.map(u => [u.page, u]));
+  const list = [];
+  for (const [title, wt] of texts) {
+    if (/^#redirect/i.test(wt)) continue;
+    const u = parseUpdate(title, created.get(title), wt);
+    const old = prev.get(title);
+    if (old && old.an) u.an = old.an;
+    list.push(u);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  list.sort((a, b) => b.t0 - a.t0);
+  S.updates = list;
+  S.updState = 'ready';
+  S.newsByItem = new Map();
+  for (const u of list) {
+    if (Date.now() - u.t0 > 30 * DAY) continue;
+    for (const id of u.ids) (S.newsByItem.get(id) || S.newsByItem.set(id, []).get(id)).push(u);
+  }
+}
+function topItems(u) {
+  return u.ids.filter(id => midNow(id) != null)
+    .map(id => ({ id, w: midNow(id) * Math.max(1, vol(id).total) * (u.linked.has(id) ? 3 : 1) }))
+    .sort((a, b) => b.w - a.w).slice(0, 14).map(x => x.id);
+}
+async function series(id, step) {
+  const key = id + ':' + step, hit = S.series.get(key);
+  if (hit && Date.now() - hit.at < 5 * 6e4) return hit.pts;
+  const j = await getJSON(`${API}/timeseries?timestep=${step}&id=${id}`);
+  const pts = (j.data || []).map(p => {
+    const hi = p.avgHighPrice, lo = p.avgLowPrice;
+    return { t: p.timestamp * 1000, hi, lo, mid: hi != null && lo != null ? (hi + lo) / 2 : (hi != null ? hi : lo), v: (p.highPriceVolume || 0) + (p.lowPriceVolume || 0) };
+  });
+  S.series.set(key, { at: Date.now(), pts });
+  return pts;
+}
+const KIND = {
+  ant: ['Anticipado', 'k-ant'], cont: ['Anticipado y sigue', 'k-cont'], rev: ['Reversión', 'k-rev'],
+  late: ['Reacción tardía', 'k-late'], flat: ['Sin movimiento', 'k-flat'], na: ['Datos insuficientes', 'k-na']
+};
+function analyzeItem(u, id, all, step) {
+  const t0 = u.t0, sh = step === '24h' ? 24 : 6, now = Date.now();
+  const pts = all.filter(p => p.mid != null);
+  const base = pts.filter(p => p.t >= t0 - 14 * DAY && p.t < t0 - 3 * DAY);
+  const before = pts.filter(p => p.t <= t0);
+  if (base.length < 4 || !before.length) return { id, kind: 'na', pts };
+  const b = median(base.map(p => p.mid));
+  const pre = mean(before.slice(-2).map(p => p.mid));
+  const cur = midNow(id) || pts[pts.length - 1].mid;
+  const rets = [];
+  for (let i = 1; i < base.length; i++) rets.push(Math.log(base[i].mid / base[i - 1].mid));
+  const sd = std(rets);
+  const thrPre = Math.max(0.025, 1.5 * sd * Math.sqrt(72 / sh));
+  const elapsedH = Math.max(sh, (now - t0) / HOUR);
+  const thrPost = Math.min(0.3, Math.max(0.025, 1.5 * sd * Math.sqrt(elapsedH / sh)));
+  const preMove = pre / b - 1, postMove = cur / pre - 1;
+  const baseDaily = base.reduce((s, p) => s + p.v, 0) / 11;
+  const preDaily = pts.filter(p => p.t >= t0 - 3 * DAY && p.t <= t0).reduce((s, p) => s + p.v, 0) / 3;
+  const volRatio = baseDaily > 0 ? preDaily / baseDaily : null;
+  const sigPre = Math.abs(preMove) >= thrPre, sigPost = Math.abs(postMove) >= thrPost && now - t0 > 3 * HOUR;
+  let kind = 'flat';
+  if (sigPre && sigPost) kind = Math.sign(preMove) === Math.sign(postMove) ? 'cont' : 'rev';
+  else if (sigPre) kind = 'ant';
+  else if (sigPost) kind = 'late';
+  const dirPre = preMove > 0 ? 'Subió' : 'Cayó';
+  const read = {
+    ant: `${dirPre} ${pct(Math.abs(preMove)).slice(1)} en las 72 horas previas y casi no se ha movido desde entonces. Ya estaba descontado: queda poco por capturar.`,
+    cont: `${dirPre} ${pct(Math.abs(preMove)).slice(1)} antes de la publicación y lleva ${pct(postMove)} después, en la misma dirección. La tendencia sigue abierta.`,
+    rev: `${dirPre} ${pct(Math.abs(preMove)).slice(1)} antes de la publicación y lleva ${pct(postMove)} desde entonces. Compraron el rumor y vendieron la noticia.`,
+    late: `No se movió antes de la publicación y lleva ${pct(postMove)} desde entonces. El mercado reaccionó tarde.`,
+    flat: `Se mantiene dentro de su variación normal. O la noticia no le afecta, o todavía nadie la ha descontado.`
+  }[kind];
+  return { id, kind, pts, preMove, postMove, volRatio, sigPre, sigPost, read };
+}
+async function analyzeUpdate(u) {
+  if (u.an && Date.now() - u.an.at < 5 * 6e4) return u.an;
+  const ids = topItems(u), step = Date.now() - u.t0 > 80 * DAY ? '24h' : '6h', rows = [];
+  for (let i = 0; i < ids.length; i += 4) {
+    const part = await Promise.all(ids.slice(i, i + 4).map(id => series(id, step).then(s => analyzeItem(u, id, s, step)).catch(() => null)));
+    rows.push(...part.filter(Boolean));
+  }
+  let A = 0, P = 0;
+  for (const r of rows) { if (r.sigPre) A += Math.abs(r.preMove); if (r.sigPost) P += Math.abs(r.postMove); }
+  const share = A + P > 0 ? A / (A + P) : null;
+  let say;
+  if (!rows.length) say = 'No hay precios recientes para los objetos mencionados.';
+  else if (share == null) say = 'Ningún objeto mencionado se ha movido fuera de su rango normal.';
+  else if (share >= 0.6) say = `El mercado se anticipó: el ${Math.round(share * 100)}% del movimiento ocurrió antes de la publicación.`;
+  else if (share <= 0.4) say = `El mercado reaccionó después: el ${Math.round((1 - share) * 100)}% del movimiento vino tras la publicación.`;
+  else say = 'El movimiento se repartió entre antes y después de la publicación.';
+  const order = { cont: 0, late: 1, rev: 2, ant: 3, flat: 4, na: 5 };
+  rows.sort((a, b) => order[a.kind] - order[b.kind] || Math.abs(b.postMove || 0) + Math.abs(b.preMove || 0) - Math.abs(a.postMove || 0) - Math.abs(a.preMove || 0));
+  u.an = { at: Date.now(), rows, share, say };
+  return u.an;
+}
+function spark(u, r) {
+  const W = 210, Hh = 44, t0 = u.t0, from = t0 - 14 * DAY, to = Math.max(Date.now(), t0 + DAY);
+  const pts = r.pts.filter(p => p.t >= from);
+  if (pts.length < 2) return '';
+  const cur = midNow(r.id);
+  if (cur) pts.push({ t: Date.now(), mid: cur });
+  const vals = pts.map(p => p.mid);
+  let mn = Math.min(...vals), mx = Math.max(...vals);
+  if (mn === mx) { mn *= 0.99; mx *= 1.01; }
+  const X = t => (t - from) / (to - from) * W, Y = v => 4 + (1 - (v - mn) / (mx - mn)) * (Hh - 8);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p.mid).toFixed(1)).join('');
+  const last = pts[pts.length - 1];
+  const col = r.postMove > 0 ? 'var(--up)' : r.postMove < 0 ? 'var(--down)' : 'var(--ink2)';
+  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-hidden="true">
+    <rect x="${X(t0 - 3 * DAY).toFixed(1)}" y="0" width="${(X(t0) - X(t0 - 3 * DAY)).toFixed(1)}" height="${Hh}" fill="var(--brass-soft)"/>
+    <line x1="${X(t0).toFixed(1)}" x2="${X(t0).toFixed(1)}" y1="0" y2="${Hh}" stroke="var(--brass)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+    <path d="${d}" fill="none" stroke="var(--ink2)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+    <circle cx="${X(last.t).toFixed(1)}" cy="${Y(last.mid).toFixed(1)}" r="2.6" fill="${col}"/></svg>`;
+}
+const catLabel = u => CAT[u.cat] || 'Noticia';
+function renderNewsList() {
+  $('#updCount').textContent = S.updates.length ? S.updates.length : '';
+  const el = $('#newslist');
+  if (S.updState === 'loading') { el.innerHTML = '<div class="empty">Cargando noticias</div>'; return; }
+  if (S.updState === 'error' || !S.updates.length) { el.innerHTML = '<div class="empty"><strong>No se pudieron cargar las noticias</strong>El OSRS Wiki no respondió. Se reintenta en unos minutos.</div>'; return; }
+  el.innerHTML = S.updates.map((u, i) => `<button data-upd="${i}" aria-current="${S.selUpd === u}">
+    <span class="meta"><span>${esc(catLabel(u))}</span><span>${df.format(u.t0)}</span></span>
+    <span class="ttl">${esc(u.title)}</span>
+    <span class="cnt ${u.ids.length ? 'has' : ''}">${u.ids.length ? u.ids.length + (u.ids.length === 1 ? ' objeto transable mencionado' : ' objetos transables mencionados') : 'Sin objetos transables'}</span></button>`).join('');
+}
+function storyHead(u) {
+  return `<div class="meta">${esc(catLabel(u))}, publicada el ${df.format(u.t0)} (${ago(u.t0)})</div>
+    <h2>${esc(u.title)}</h2>
+    ${u.excerpt ? `<p class="lede">${esc(u.excerpt)}</p>` : ''}
+    <p class="lede"><a href="https://oldschool.runescape.wiki/w/${encodeURIComponent(u.page.replace(/ /g, '_'))}" target="_blank" rel="noopener">Leer la publicación completa en el OSRS Wiki</a></p>`;
+}
+async function renderStory() {
+  const el = $('#story'), u = S.selUpd;
+  if (!u) { el.innerHTML = S.updState === 'loading' ? '<div class="empty">Cargando noticias</div>' : '<div class="empty"><strong>Elige una publicación</strong>Verás cómo se movieron los objetos que menciona, antes y después de la noticia.</div>'; return; }
+  if (!u.ids.length) { el.innerHTML = storyHead(u) + '<div class="verdict"><p class="say">Esta publicación no menciona objetos que se transen en el Grand Exchange.</p></div>'; return; }
+  if (!u.an) el.innerHTML = storyHead(u) + '<div class="verdict"><p class="say muted">Calculando cómo se movieron los precios</p></div>';
+  const an = await analyzeUpdate(u);
+  if (S.selUpd !== u) return;
+  const a = an.share == null ? 0 : Math.round(an.share * 100);
+  el.innerHTML = storyHead(u) + `<div class="verdict"><p class="say">${esc(an.say)}</p>
+    ${an.share == null ? '' : `<div class="split" role="img" aria-label="Antes ${a}%, después ${100 - a}%"><i class="a" style="width:${a}%"></i><i class="p" style="width:${100 - a}%"></i></div>
+    <div class="splitkey"><span><i class="sw" style="background:var(--brass)"></i>Antes de la publicación <b>${a}%</b></span><span><i class="sw" style="background:var(--ink)"></i>Después <b>${100 - a}%</b></span></div>`}</div>
+    <div class="rows"><div class="rowhead"><span>Objeto</span><span>72 h antes</span><span>Desde la noticia</span><span>Volumen previo</span><span>14 días antes hasta hoy</span></div>
+    ${an.rows.map(r => {
+      const it = S.items.get(r.id), [label, cls] = KIND[r.kind];
+      if (r.kind === 'na') return `<button class="arow" data-item="${r.id}"><span class="item">${img(it)}<span><span class="nm">${esc(it.name)}</span><br><span class="chip ${cls}">${label}</span></span></span><span class="r num">–</span><span class="r num">–</span><span class="r num vol">–</span><span class="sp"></span></button>`;
+      return `<button class="arow" data-item="${r.id}">
+        <span class="item">${img(it)}<span><span class="nm">${esc(it.name)}</span><br><span class="chip ${cls}">${label}</span></span></span>
+        <span class="r num ${r.sigPre ? sign(r.preMove) : 'muted'}">${pct(r.preMove)}</span>
+        <span class="r num ${r.sigPost ? sign(r.postMove) : 'muted'}">${pct(r.postMove)}</span>
+        <span class="r num vol ${r.volRatio >= 1.5 ? '' : 'muted'}">${r.volRatio == null ? '–' : dec(r.volRatio, 1) + ' x'}</span>
+        <span class="sp">${spark(u, r)}</span>
+        <span class="read">${esc(r.read)}</span></button>`;
+    }).join('')}</div>
+    <p class="method">Cada objeto se compara con su precio habitual: la mediana entre 14 y 3 días antes de la noticia. Un movimiento cuenta cuando supera 1,5 veces la variación normal de ese objeto, con un mínimo de 2,5%. En los gráficos, la franja marca las 72 horas previas y la línea vertical el momento de la publicación. El volumen previo compara esas 72 horas con el promedio diario anterior. Se analizan hasta 14 objetos por publicación, los de mayor valor transado.</p>`;
+}
+async function renderBrief() {
+  const el = $('#brief'), u = S.updates.find(x => x.ids.length && Date.now() - x.t0 < 45 * DAY);
+  if (!u) { el.innerHTML = ''; return; }
+  const idx = S.updates.indexOf(u);
+  const draw = say => el.innerHTML = `<div class="brief"><div><div class="when">Última noticia con objetos transables, ${ago(u.t0)}</div><h2>${esc(u.title)}</h2><p>${esc(say)}</p></div><button class="btn" data-upd="${idx}">Ver el análisis</button></div>`;
+  draw(u.an ? u.an.say : 'Calculando cómo se movieron los precios');
+  try { const an = await analyzeUpdate(u); draw(an.say); } catch (e) { draw('No se pudo calcular el movimiento de precios.'); }
+}
+
+/* ---------- panel de objeto ---------- */
+const STEPS = [['5m', '1 día'], ['1h', '2 semanas'], ['6h', '3 meses'], ['24h', '1 año']];
+function drawChart(pts, marks, step, sw) {
+  const W = 640, Hh = 260, l = 6, r = 60, t = 8, b = 22, vh = 36, pw = W - l - r, ph = Hh - t - b - vh - 10;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t, vals = [];
+  pts.forEach(p => { if (p.hi != null) vals.push(p.hi); if (p.lo != null) vals.push(p.lo); });
+  let mn = Math.min(...vals), mx = Math.max(...vals);
+  if (mn === mx) { mn *= 0.99; mx *= 1.01; }
+  const pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
+  const X = tt => l + (tt - t0) / (t1 - t0 || 1) * pw, Y = v => t + (1 - (v - mn) / (mx - mn)) * ph;
+  const path = k => { let d = '', pen = false; for (const p of pts) { if (p[k] == null) { pen = false; continue; } d += (pen ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p[k]).toFixed(1); pen = true; } return d; };
+  const vmax = Math.max(1, ...pts.map(p => p.v)), bw = Math.max(1, pw / pts.length - 0.6), vy = Hh - b - vh;
+  const bars = pts.map(p => p.v ? `<rect x="${(X(p.t) - bw / 2).toFixed(1)}" y="${(vy + vh - p.v / vmax * vh).toFixed(1)}" width="${bw.toFixed(1)}" height="${(p.v / vmax * vh).toFixed(1)}"/>` : '').join('');
+  const yt = [0.1, 0.5, 0.9].map(f => mn + (mx - mn) * f).map(v => `<line x1="${l}" x2="${l + pw}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line2)"/><text x="${W - r + 8}" y="${(Y(v) + 4).toFixed(1)}">${short(v)}</text>`).join('');
+  const fmtX = step === '5m' ? tf : dfShort;
+  const xt = [0, 0.33, 0.66, 1].map((f, i) => `<text x="${(l + pw * f).toFixed(1)}" y="${Hh - 6}" text-anchor="${i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}">${fmtX.format(t0 + (t1 - t0) * f)}</text>`).join('');
+  const bl = sw ? [sw.floor, sw.ceil].filter(v => v > mn && v < mx).map(v => `<line x1="${l}" x2="${l + pw}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--brass)" stroke-width="1.2" stroke-dasharray="6 4"/>`).join('') : '';
+  const mk = marks.filter(m => m.t0 >= t0 && m.t0 <= t1).map(m => `<line x1="${X(m.t0).toFixed(1)}" x2="${X(m.t0).toFixed(1)}" y1="${t}" y2="${vy + vh}" stroke="var(--brass)" stroke-width="1.5" stroke-dasharray="4 3"/>`).join('');
+  return `<svg class="chart" id="chart" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Historial de precios de compra y venta">
+    <g font-size="12" fill="var(--ink2)" style="font-stretch:86%">${yt}${xt}</g>
+    <g fill="var(--line)">${bars}</g>${mk}<g font-size="12" style="font-stretch:86%">${bl}</g>
+    <path d="${path('lo')}" fill="none" stroke="var(--buy)" stroke-width="1.6"/>
+    <path d="${path('hi')}" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+    <line id="cross" y1="${t}" y2="${vy + vh}" stroke="var(--ink3)" stroke-width="1" visibility="hidden"/></svg>`;
+}
+function calcHtml(qr, qty) {
+  return `<div><span class="lbl">Inversión</span><output class="num">${gp(qty * qr.buy)}</output></div>
+    <div><span class="lbl">Impuesto total</span><output class="num">${gp(qty * qr.tax)}</output></div>
+    <div><span class="lbl">Ganancia neta</span><output class="num ${sign(qr.margin)}">${gp(qty * qr.margin)}</output></div>`;
+}
+async function renderDrawer() {
+  const id = S.selItem, el = $('#drawer');
+  if (id == null) return;
+  const it = S.items.get(id), qr = quote(id), L = S.latest[id] || {}, marks = S.newsByItem.get(id) || [];
+  const wiki = 'https://oldschool.runescape.wiki/w/Special:Lookup?type=item&id=' + id;
+  el.innerHTML = `<div class="dhead">${img(it)}<div><h2>${esc(it.name)}</h2><div class="sub">${it.members ? 'Miembros' : 'F2P'}, límite de ${it.limit ? gp(it.limit) : 'compra desconocido'} cada 4 horas. <a href="${wiki}" target="_blank" rel="noopener" style="color:inherit">Ver en el Wiki</a></div></div><button class="x" data-close>Cerrar</button></div>
+    ${qr ? `<dl class="stats">
+      <div><dt>Comprar a</dt><dd class="num">${gp(qr.buy)}<small>${L.lowTime ? ago(L.lowTime * 1000) : ''}</small></dd></div>
+      <div><dt>Vender a</dt><dd class="num">${gp(qr.sell)}<small>${L.highTime ? ago(L.highTime * 1000) : ''}</small></dd></div>
+      <div><dt>Margen neto</dt><dd class="num ${sign(qr.margin)}">${gp(qr.margin)}<small>impuesto ${gp(qr.tax)}</small></dd></div>
+      <div><dt>ROI</dt><dd class="num ${sign(qr.roi)}">${pct(qr.roi, 2)}<small>${qr.confirmed ? 'confirmado en 1 h' : 'sin confirmar en 1 h'}</small></dd></div>
+      <div><dt>Volumen diario</dt><dd class="num">${short(qr.vol)}</dd></div>
+      <div><dt>High alch</dt><dd class="num">${it.highalch ? gp(it.highalch) : '–'}</dd></div>
+      <div><dt>Cantidad sugerida</dt><dd class="num">${gp(qr.qty)}</dd></div>
+      <div><dt>Ganancia estimada</dt><dd class="num ${sign(qr.est)}">${short(qr.est)}</dd></div></dl>` : '<p class="muted">Sin precios recientes de compra y venta para este objeto.</p>'}
+    <div class="charthead"><div class="seg" role="group" aria-label="Periodo del gráfico">${STEPS.map(([k, lab]) => `<button data-step="${k}" aria-pressed="${S.step === k}">${lab}</button>`).join('')}</div>
+      <div class="key"><span><i style="background:var(--ink)"></i>Venta</span><span><i style="background:var(--buy)"></i>Compra</span>${marks.length ? '<span><i style="background:var(--brass)"></i>Noticia</span>' : ''}<span id="bandKey" hidden><i style="background:var(--brass)"></i>Piso y techo</span></div></div>
+    <div id="chartbox"><div class="empty">Cargando historial</div></div><div class="readout num" id="readout"></div>
+    <div class="dsec"><h3>Oscilación de 90 días</h3><div id="swingbox"><p class="swingtxt">Calculando</p></div></div>
+    ${qr ? `<div class="dsec"><h3>Calcula un flip</h3><div class="calc"><label class="field">Cantidad<input type="text" id="cQty" inputmode="numeric" value="${qr.qty || 1}"></label><div class="calc" id="cOut">${calcHtml(qr, qr.qty || 1)}</div></div>
+      <div class="dactions"><button class="btn" data-buyitem>Registrar compra en Mi mesa</button><button class="btn ghost" data-watch>${S.watch.has(id) ? 'Dejar de seguir' : 'Seguir'}</button></div></div>` : `<div class="dactions"><button class="btn ghost" data-watch>${S.watch.has(id) ? 'Dejar de seguir' : 'Seguir'}</button></div>`}
+    ${marks.length ? `<div class="dsec mentions"><h3>Noticias que lo mencionan</h3>${marks.map(u => `<button data-upd="${S.updates.indexOf(u)}"><span class="ttl">${esc(u.title)}</span><span class="meta">${esc(catLabel(u))}, ${df.format(u.t0)}</span></button>`).join('')}</div>` : ''}`;
+  const step = S.step;
+  let sw = null;
+  try { await series(id, '6h'); sw = swingOf(id); } catch (e) { sw = S.oscById.get(id) || null; }
+  if (S.selItem !== id) return;
+  $('#swingbox').innerHTML = swingHtml(id, sw);
+  try {
+    const pts = (await series(id, step)).filter(p => p.hi != null || p.lo != null);
+    if (S.selItem !== id || S.step !== step) return;
+    const box = $('#chartbox');
+    if (pts.length < 2) { box.innerHTML = '<div class="empty">Sin transacciones suficientes en este periodo.</div>'; return; }
+    box.innerHTML = drawChart(pts, marks, step, sw);
+    $('#bandKey').hidden = !(sw && box.querySelector('[stroke-dasharray="6 4"]'));
+    const svg = $('#chart'), cross = $('#cross'), ro = $('#readout');
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    const move = ev => {
+      const rc = svg.getBoundingClientRect(), x = (ev.clientX - rc.left) / rc.width * 640;
+      const tt = t0 + Math.min(1, Math.max(0, (x - 6) / 574)) * (t1 - t0);
+      let best = pts[0];
+      for (const p of pts) if (Math.abs(p.t - tt) < Math.abs(best.t - tt)) best = p;
+      const cx = 6 + (best.t - t0) / (t1 - t0 || 1) * 574;
+      cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.setAttribute('visibility', 'visible');
+      ro.textContent = `${dfShort.format(best.t)} ${tf.format(best.t)}   Venta ${gp(best.hi)}   Compra ${gp(best.lo)}   Volumen ${gp(best.v)}`;
+    };
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); ro.textContent = ''; });
+  } catch (e) {
+    if (S.selItem === id) $('#chartbox').innerHTML = '<div class="empty">No se pudo cargar el historial de precios.</div>';
+  }
+}
+function openItem(id) {
+  S.selItem = id;
+  const d = $('#drawer');
+  d.hidden = false; $('#scrim').hidden = false;
+  renderDrawer();
+  requestAnimationFrame(() => d.classList.add('open'));
+}
+function closeItem() {
+  S.selItem = null;
+  const d = $('#drawer');
+  d.classList.remove('open'); $('#scrim').hidden = true;
+  setTimeout(() => { if (S.selItem == null) d.hidden = true; }, 220);
+}
+
+/* ---------- navegacion y eventos ---------- */
+function setTab(tab) {
+  S.tab = tab;
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $('#tab-mercado').hidden = tab !== 'mercado' || !S.online;
+  $('#tab-actualizaciones').hidden = tab !== 'actualizaciones' || !S.online;
+  $('#tab-mesa').hidden = tab !== 'mesa' || !S.online;
+  $('#tab-equipo').hidden = tab !== 'equipo' || !S.online;
+  $('#tab-osc').hidden = tab !== 'osc' || !S.online;
+  if (tab === 'osc' && S.online) renderOsc();
+  if (tab === 'equipo' && S.online) { renderGear(); loadGear(); }
+  if (tab === 'mesa' && S.online) renderMesa();
+  if (tab === 'actualizaciones') {
+    if (!S.selUpd) S.selUpd = S.updates.find(u => u.ids.length) || S.updates[0] || null;
+    renderNewsList(); renderStory();
+  }
+  try { history.replaceState(null, '', '#' + tab); } catch (e) { /* sin historial */ }
+}
+function selectUpdate(i) {
+  const u = S.updates[i];
+  if (!u) return;
+  S.selUpd = u;
+  if (S.selItem != null) closeItem();
+  setTab('actualizaciones');
+  if (window.innerWidth < 980) $('#story').scrollIntoView({ block: 'start' });
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab],[data-sort],[data-item],[data-upd],[data-step],[data-close],[data-mode],[data-watch],[data-plan],[data-buyitem],[data-sell],[data-del],[data-clearhist],[data-export],[data-import]');
+  if (!t) return;
+  if (t.dataset.tab) setTab(t.dataset.tab);
+  else if (t.dataset.sort) {
+    const k = t.dataset.sort;
+    S.sort = S.sort.key === k ? { key: k, dir: -S.sort.dir } : { key: k, dir: k === 'name' || k === 'age' ? 1 : -1 };
+    renderHead(); renderMarket();
+  }
+  else if (t.dataset.mode) {
+    cfg.mode = t.dataset.mode;
+    S.sort = cfg.mode === 'watch' ? { key: 'name', dir: 1 } : { key: 'est', dir: -1 };
+    store.set(cfg); renderHead(); renderMarket();
+  }
+  else if (t.hasAttribute('data-watch')) {
+    const id = S.selItem;
+    if (S.watch.has(id)) S.watch.delete(id); else S.watch.add(id);
+    ls.set('vd.watch', [...S.watch]);
+    t.textContent = S.watch.has(id) ? 'Dejar de seguir' : 'Seguir';
+    renderMarket();
+  }
+  else if (t.dataset.plan != null) { const p = S.plan[+t.dataset.plan]; if (p && addPos(p.r.id, p.qty, p.r.buy)) renderMesa(); }
+  else if (t.hasAttribute('data-buyitem')) {
+    const qr = quote(S.selItem), n = parseGp($('#cQty').value);
+    if (qr && addPos(qr.id, n, qr.buy)) { t.textContent = 'Compra registrada'; t.disabled = true; if (S.tab === 'mesa') renderMesa(); }
+  }
+  else if (t.dataset.sell != null) {
+    const i = +t.dataset.sell, p = S.pos[i], inp = document.querySelector(`[data-sellin="${i}"]`), sell = parseGp(inp.value), it = p && S.items.get(p.id);
+    if (!p || !it || !sell) { inp.focus(); return; }
+    S.hist.unshift({ id: p.id, qty: p.qty, buy: p.buy, sell, t: p.t, tc: Date.now(), profit: p.qty * (sell - p.buy - taxOf(it, sell)) });
+    S.hist = S.hist.slice(0, 500); S.pos.splice(i, 1); savePos(); renderMesa();
+  }
+  else if (t.dataset.del != null) { S.pos.splice(+t.dataset.del, 1); savePos(); renderMesa(); }
+  else if (t.hasAttribute('data-export')) exportData();
+  else if (t.hasAttribute('data-import')) $('#impFile').click();
+  else if (t.hasAttribute('data-clearhist')) { S.hist = []; savePos(); renderMesa(); }
+  else if (t.dataset.upd != null) selectUpdate(+t.dataset.upd);
+  else if (t.dataset.item) openItem(+t.dataset.item);
+  else if (t.dataset.step) { S.step = t.dataset.step; renderDrawer(); }
+  else if (t.hasAttribute('data-close')) closeItem();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.selItem != null) closeItem();
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('tr[data-item]')) openItem(+e.target.dataset.item);
+});
+document.addEventListener('change', e => {
+  const id = e.target.dataset && e.target.dataset.tgt;
+  if (!id) return;
+  const v = e.target.value.trim() ? parseGp(e.target.value) : null;
+  if (v) S.targets[id] = v; else delete S.targets[id];
+  ls.set('vd.targets', S.targets);
+  renderGear();
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'cQty' && S.selItem != null) {
+    const qr = quote(S.selItem), n = parseGp(e.target.value) || 0;
+    if (qr) $('#cOut').innerHTML = calcHtml(qr, n);
+  }
+});
+$('#scrim').addEventListener('click', closeItem);
+let qTimer;
+$('#q').addEventListener('input', e => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { S.q = e.target.value; if (S.tab !== 'mercado') setTab('mercado'); renderHead(); renderMarket(); }, 120);
+});
+function bindFilters() {
+  const cap = $('#fCapital');
+  cap.value = short(cfg.capital);
+  cap.addEventListener('change', () => { const v = parseGp(cap.value); if (v) cfg.capital = v; cap.value = short(cfg.capital); save(); });
+  const sel = (id, key, num) => { const el = $(id); el.value = String(cfg[key]); el.addEventListener('change', () => { cfg[key] = num ? +el.value : el.value; save(); }); };
+  sel('#fMinP', 'minPrice', true); sel('#oMin', 'oscMin', true); sel('#oSort', 'oscSort', false);
+  sel('#fSlots', 'slots', true); sel('#fRoi', 'minRoi', true); sel('#fVol', 'minVol', true); sel('#fAge', 'maxAge', true); sel('#fMem', 'members', false);
+  const chk = (id, key) => { const el = $(id); el.checked = !!cfg[key]; el.addEventListener('change', () => { cfg[key] = el.checked; save(); }); };
+  chk('#fConf', 'confirmed'); chk('#fNews', 'newsOnly'); chk('#oBuy', 'oscOnlyBuy');
+}
+function save() { store.set(cfg); renderMarket(); if (S.tab === 'mesa') renderMesa(); if (S.tab === 'osc') renderOsc(); }
+
+/* ---------- exportar e importar ---------- */
+function exportData() {
+  const data = { app: 'varrock-desk', v: 1, at: new Date().toISOString(), cfg, watch: [...S.watch], pos: S.pos, hist: S.hist, targets: S.targets };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+  a.download = 'varrock-desk-datos.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('#impFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || d.app !== 'varrock-desk') throw new Error('formato');
+    if (d.cfg) store.set(Object.assign({}, cfg, d.cfg));
+    if (Array.isArray(d.watch)) ls.set('vd.watch', d.watch);
+    if (Array.isArray(d.pos)) ls.set('vd.pos', d.pos);
+    if (Array.isArray(d.hist)) ls.set('vd.hist', d.hist);
+    if (d.targets && typeof d.targets === 'object') ls.set('vd.targets', d.targets);
+    location.reload();
+  } catch (err) {
+    const b = document.querySelector('[data-import]');
+    b.textContent = 'Archivo no válido'; setTimeout(() => { b.textContent = 'Importar datos'; }, 2500);
+  }
+  e.target.value = '';
+});
+
+/* ---------- ciclo de datos ---------- */
+function tick() {
+  const dot = $('#dot'), txt = $('#statusText');
+  if (!S.online) { dot.className = 'dot off'; txt.textContent = 'Sin conexión'; return; }
+  const stale = Date.now() - S.priceTs > 3 * 6e4;
+  dot.classList.toggle('stale', stale); dot.classList.remove('off');
+  txt.innerHTML = `<span class="long">Precios actualizados </span>${ago(S.priceTs)}`;
+  if (S.tab === 'mesa') document.querySelectorAll('[data-reset]').forEach(el => { el.textContent = leftText(+el.dataset.reset); });
+}
+async function refreshPrices() {
+  if (document.hidden) return;
+  try {
+    await loadLatest();
+    const dot = $('#dot'); dot.className = 'dot ping'; setTimeout(() => dot.classList.remove('ping'), 950);
+    renderMarket();
+    if (S.tab === 'osc') renderOsc();
+    if (S.tab === 'equipo' && !(document.activeElement && document.activeElement.matches('.tgt'))) renderGear();
+    if (S.tab === 'mesa') { renderPlan(); if (!(document.activeElement && document.activeElement.matches('.sellin'))) renderPositions(); }
+    if (S.selItem != null && !$('#cQty')) renderDrawer();
+  } catch (e) { /* se conserva el ultimo precio y se marca como antiguo */ }
+}
+async function refreshUpdates() {
+  try {
+    const selPage = S.selUpd && S.selUpd.page;
+    await loadUpdates();
+    if (selPage) S.selUpd = S.updates.find(u => u.page === selPage) || null;
+  } catch (e) { if (!S.updates.length) S.updState = 'error'; }
+  renderNewsList(); renderMarket(); renderBrief();
+  if (S.tab === 'actualizaciones') { if (!S.selUpd) S.selUpd = S.updates.find(u => u.ids.length) || S.updates[0] || null; renderNewsList(); renderStory(); }
+}
+async function boot() {
+  $('#offline').hidden = true;
+  $('#statusText').textContent = 'Conectando';
+  try {
+    await Promise.all([S.items.size ? null : loadMapping(), loadLatest(), loadVolumes()]);
+  } catch (e) {
+    S.online = false;
+    $('#offline').hidden = false; ['#tab-mercado', '#tab-actualizaciones', '#tab-equipo', '#tab-mesa', '#tab-osc'].forEach(x => $(x).hidden = true);
+    tick();
+    return;
+  }
+  renderHead(); savePos();
+  if (cfg.mode === 'watch') S.sort = { key: 'name', dir: 1 };
+  setTab(location.hash === '#actualizaciones' ? 'actualizaciones' : location.hash === '#mesa' ? 'mesa' : location.hash === '#equipo' ? 'equipo' : location.hash === '#osc' ? 'osc' : 'mercado');
+  renderMarket(); tick();
+  refreshUpdates();
+  loadOsc().then(() => { if (S.tab === 'osc') renderOsc(); });
+  if (!boot.started) {
+    boot.started = true;
+    setInterval(refreshPrices, 60 * 1000);
+    setInterval(() => { if (!document.hidden) loadVolumes().then(renderMarket); }, 5 * 60 * 1000);
+    setInterval(() => { if (!document.hidden) refreshUpdates(); }, 15 * 60 * 1000);
+    setInterval(() => { if (!document.hidden) loadOsc().then(() => { if (S.tab === 'osc') renderOsc(); }); }, 30 * 60 * 1000);
+    setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - S.priceTs > 60 * 1000) refreshPrices(); });
+  }
+}
+bindFilters();
+$('#retry').addEventListener('click', boot);
+boot();
+})();
+</script>
+</body>
+</html>
