@@ -326,7 +326,7 @@ footer a{color:inherit}
       </div>
       <div class="filters">
         <label class="field">Precio desde<select id="oMin"><option value="1000000">1 M</option><option value="10000000">10 M</option><option value="50000000">50 M</option><option value="100000000">100 M</option></select></label>
-        <label class="field">Ordenar por<select id="oSort"><option value="score">Mejor historial</option><option value="near">Más cerca del piso</option><option value="net">Mayor ganancia por unidad</option></select></label>
+        <label class="field">Ordenar por<select id="oSort"><option value="score">Más ganancia por día</option><option value="near">Más cerca del piso</option><option value="net">Mayor ganancia por unidad</option></select></label>
         <label class="check"><input type="checkbox" id="oBuy">Solo en zona de compra o cerca del piso</label>
       </div>
       <div class="tablebox plain"><table><thead><tr><th scope="col">Objeto</th><th scope="col">Si ofertas hoy</th><th scope="col">Piso</th><th scope="col">Techo</th><th scope="col">Ganancia neta por unidad</th><th scope="col">ROI neto</th><th scope="col">Vueltas en 90 días</th><th scope="col">Días por vuelta</th><th scope="col">Peor caída</th><th scope="col">Unidades al día</th><th scope="col">Por vuelta con tu capital</th></tr></thead><tbody id="oscBody"></tbody></table><div class="empty" id="oscEmpty" hidden></div></div>
@@ -430,7 +430,7 @@ const ls = {
   get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
 };
-const cfg = Object.assign({ capital: 1e9, tax: 2, minRoi: 1, minVol: 100, maxAge: 60, members: 'all', confirmed: true, newsOnly: false, mode: 'flip', slots: 8, minPrice: 1e5, oscMin: 1e6, oscSort: 'score', oscOnlyBuy: false }, store.get());
+const cfg = Object.assign({ capital: 1e9, tax: 2, minRoi: 1, minVol: 100, maxAge: 60, members: 'all', confirmed: true, newsOnly: false, mode: 'flip', slots: 8, minPrice: 1e5, oscMin: 1e7, oscSort: 'score', oscOnlyBuy: false }, store.get());
 const S = {
   items: new Map(), byName: new Map(), wordIdx: new Map(),
   latest: {}, h1: {}, d24: {}, has24: false, priceTs: 0, online: false,
@@ -598,7 +598,7 @@ function zoneOf(s, id) {
   return 'mid';
 }
 const ZONE = { buy: ['Zona de compra', 'k-hit'], near: ['Cerca del piso', 'k-low'], sell: ['Zona de venta', 'k-near'] };
-const oscQty = (s, id) => { const it = S.items.get(id), L = S.latest[id] || {}, px = L.low || s.floor; return Math.max(0, Math.min(it && it.limit || Infinity, Math.floor(cfg.capital * 0.35 / px))); };
+const oscQty = (s, id) => { const it = S.items.get(id), L = S.latest[id] || {}, px = L.low || s.floor; return Math.max(0, Math.min(it && it.limit || Infinity, Math.floor(cfg.capital * 0.35 / px), Math.max(1, Math.floor(s.dailyUnits)))); };
 function renderOsc() {
   if (!S.online) return;
   const body = $('#oscBody'), empty = $('#oscEmpty'), note = $('#oscNote');
@@ -617,9 +617,9 @@ function renderOsc() {
     const z = zoneOf(s, base.id);
     if (cfg.oscOnlyBuy && z !== 'buy' && z !== 'near') continue;
     const L = S.latest[base.id] || {}, qty = oscQty(s, base.id);
-    rows.push({ id: base.id, s, z, now: L.low, dist: L.low ? L.low / s.floor - 1 : 9, qty });
+    rows.push({ id: base.id, s, z, now: L.low, dist: L.low ? L.low / s.floor - 1 : 9, qty, ev: qty * s.net * (s.trips / Math.max(1, s.entries)) / Math.max(1, s.medianDays || 30) });
   }
-  const by = { score: (a, b) => b.s.score - a.s.score, near: (a, b) => a.dist - b.dist, net: (a, b) => b.s.net - a.s.net }[cfg.oscSort] || ((a, b) => b.s.score - a.s.score);
+  const by = { score: (a, b) => b.ev - a.ev, near: (a, b) => a.dist - b.dist, net: (a, b) => b.s.net - a.s.net }[cfg.oscSort] || ((a, b) => b.s.score - a.s.score);
   rows.sort(by);
   body.innerHTML = rows.map(r => {
     const it = S.items.get(r.id), s = r.s, zc = ZONE[r.z];
@@ -635,7 +635,7 @@ function renderOsc() {
   $('#oscCount').textContent = nb ? nb : '';
   empty.hidden = rows.length > 0;
   if (!rows.length) empty.innerHTML = cfg.oscOnlyBuy ? '<strong>Ningún objeto está cerca de su piso ahora</strong>Desmarca el filtro para ver todos los que oscilan.' : '<strong>Ningún objeto cumple los filtros</strong>Baja el precio mínimo o sube tu capital en la pestaña Mercado.';
-  note.textContent = `Calculado ${ago(Date.parse(S.osc.generatedAt))} con 90 días de precios: ${nf.format(S.osc.analyzed)} objetos analizados, ${nf.format(S.osc.candidates)} oscilan lo suficiente. "Vueltas" cuenta las veces que el precio fue del piso al techo; "Peor caída" es cuánto siguió bajando después de tocar el piso antes de rebotar. "Por vuelta con tu capital" usa hasta 35% de tu capital por objeto. Que haya oscilado no garantiza que siga haciéndolo: una actualización puede romper el rango.`;
+  note.textContent = `Calculado ${ago(Date.parse(S.osc.generatedAt))} con 90 días de precios: ${nf.format(S.osc.analyzed)} objetos analizados, ${nf.format(S.osc.candidates)} oscilan lo suficiente. "Vueltas" cuenta las veces que el precio fue del piso al techo; "Peor caída" es cuánto siguió bajando después de tocar el piso antes de rebotar. "Por vuelta con tu capital" usa hasta 35% de tu capital por objeto y no más de lo que se transa en un día; el orden por defecto divide esa ganancia por los días que tarda cada vuelta. Que haya oscilado no garantiza que siga haciéndolo: una actualización puede romper el rango.`;
 }
 function swingHtml(id, s) {
   if (!s) return '<p class="swingtxt">No hay suficiente historial para medir su oscilación.</p>';
